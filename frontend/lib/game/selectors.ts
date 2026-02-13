@@ -1,6 +1,6 @@
 import { getColumnTicks } from "@/lib/game/constants";
 import { getMultiplierForCell, normalizeColumnMultipliersWithHouseEdge, priceToRow } from "@/lib/game/odds";
-import type { FutureColumn } from "@/lib/game/types";
+import type { Bet, FutureColumn } from "@/lib/game/types";
 
 type ProgressState = {
   config: { columnDurationMs: number; tickMs: number };
@@ -19,11 +19,7 @@ type FutureGridState = {
   };
   currentTick: number;
   currentPrice: number;
-  betsOpen: Array<{
-    cellId: string;
-    stake: number;
-    multiplier: number;
-  }>;
+  betsOpen: Bet[];
 };
 
 export function getCurrentColumnProgress(state: ProgressState): number {

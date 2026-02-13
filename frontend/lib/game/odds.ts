@@ -4,14 +4,16 @@ function clamp(n: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, n));
 }
 
-export function priceToRow(price: number, config: GameConfig): number {
+type PriceBandConfig = Pick<GameConfig, "rows" | "minPrice" | "maxPrice">;
+
+export function priceToRow(price: number, config: PriceBandConfig): number {
   const bounded = clamp(price, config.minPrice, config.maxPrice);
   const rowHeight = (config.maxPrice - config.minPrice) / config.rows;
   const raw = Math.floor((config.maxPrice - bounded) / rowHeight);
   return clamp(raw, 0, config.rows - 1);
 }
 
-export function rowBand(row: number, config: GameConfig): { low: number; high: number } {
+export function rowBand(row: number, config: PriceBandConfig): { low: number; high: number } {
   const rowHeight = (config.maxPrice - config.minPrice) / config.rows;
   const safeRow = clamp(row, 0, config.rows - 1);
   const high = config.maxPrice - safeRow * rowHeight;
@@ -23,7 +25,7 @@ export function getMultiplierForCell(args: {
   colDistance: number;
   row: number;
   currentRow: number;
-  config: GameConfig;
+  config: Pick<GameConfig, "rows">;
 }): number {
   const { colDistance, row, currentRow } = args;
   const timeDistance = Math.max(1, colDistance);

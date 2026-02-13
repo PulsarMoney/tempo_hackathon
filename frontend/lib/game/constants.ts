@@ -23,7 +23,9 @@ export const STAKE_PRESETS = [1, 5, 10] as const;
 
 export const SPEED_OPTIONS = [1, 2, 4] as const;
 
-export function getColumnTicks(config: GameConfig): number {
+type ColumnTimingConfig = Pick<GameConfig, "columnDurationMs" | "tickMs">;
+
+export function getColumnTicks(config: ColumnTimingConfig): number {
   return Math.max(1, Math.floor(config.columnDurationMs / config.tickMs));
 }
 
