@@ -95,7 +95,8 @@ export function BetGrid({
       }}
     >
       {cells.map((cell) => {
-        const base = "relative flex h-full w-full items-center justify-center rounded-sm border border-zinc-800/65 text-[10px]";
+        const base =
+          "relative flex h-full w-full items-center justify-center rounded-sm border border-zinc-800/65 text-[12px] font-semibold md:text-[13px]";
         const isHitCell = hitEffectActive && hitEffectCellIds.includes(cell.key);
 
         if (cell.bet) {
@@ -107,8 +108,8 @@ export function BetGrid({
             >
               {isHitCell && <div className="hit-burst-ring absolute inset-[-4px] rounded-sm" />}
               <div className="flex flex-col items-center">
-                <span className="text-[11px] font-semibold">${cell.bet.stake.toFixed(0)}</span>
-                <span>x{cell.bet.multiplier.toFixed(2)}</span>
+                <span className="text-[13px] font-bold md:text-[14px]">${cell.bet.stake.toFixed(0)}</span>
+                <span className="text-[11px] md:text-[12px]">x{cell.bet.multiplier.toFixed(2)}</span>
               </div>
             </div>
           );

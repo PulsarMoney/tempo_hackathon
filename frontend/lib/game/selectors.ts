@@ -37,7 +37,7 @@ export function getOpenBetsForCell(state: FutureGridState, cellId: string) {
 
 export function getFutureGrid(state: FutureGridState): FutureColumn[] {
   const columnTicks = getColumnTicks(state.config);
-  const currentColumn = Math.floor(state.currentTick / columnTicks);
+  const currentColumn = Math.floor(state.currentTick / columnTicks) + 1;
   const currentRow = priceToRow(state.currentPrice, state.config);
 
   const columns: FutureColumn[] = [];

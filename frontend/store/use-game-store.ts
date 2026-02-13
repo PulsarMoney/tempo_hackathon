@@ -138,7 +138,7 @@ export const useGameStore = create<GameState>()(
 
       const columnTicks = getColumnTicks(state.config);
       const nextTick = state.currentTick + 1;
-      const currentColumnAfter = Math.floor(nextTick / columnTicks);
+      const currentColumnAfter = Math.floor(nextTick / columnTicks) + 1;
 
       const prevPoint = state.priceSeries[state.priceSeries.length - 1];
       const priceResult = nextPricePoint(
@@ -213,7 +213,7 @@ export const useGameStore = create<GameState>()(
     placeBet: (col, row, multiplier) => {
       const state = get();
       const columnTicks = getColumnTicks(state.config);
-      const currentColumn = Math.floor(state.currentTick / columnTicks);
+      const currentColumn = Math.floor(state.currentTick / columnTicks) + 1;
 
       if (col <= currentColumn + 1) {
         return { ok: false, reason: "This column is too close and locked." };

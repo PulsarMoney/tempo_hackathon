@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { PanelRightClose, PanelRightOpen } from "lucide-react";
 
 import { getColumnTicks } from "@/lib/game/constants";
 import { getCurrentColumnProgress, getFutureGrid } from "@/lib/game/selectors";
 import { rowBand } from "@/lib/game/odds";
 import { useGameStore } from "@/store/use-game-store";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { TopBar } from "@/components/game/top-bar";
 import { PriceLineOverlay } from "@/components/game/price-line-overlay";
 import { BetGrid } from "@/components/game/bet-grid";
@@ -16,6 +18,7 @@ import { HistoryPanel } from "@/components/game/history-panel";
 
 export function ChartBoard() {
   const [localMessage, setLocalMessage] = useState<string | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
 
   const config = useGameStore((state) => state.config);
   const balance = useGameStore((state) => state.balance);
@@ -57,8 +60,8 @@ export function ChartBoard() {
     [config, currentTick]
   );
   const columnTicks = useMemo(() => getColumnTicks(config), [config]);
-  const currentColumn = Math.floor(currentTick / columnTicks);
-  const pastColumnsVisible = config.colsFuture - 2;
+  const currentColumn = Math.floor(currentTick / columnTicks) + 1;
+  const pastColumnsVisible = config.colsFuture;
   const futureColumnsVisible = config.colsFuture;
   const totalColumnsVisible = pastColumnsVisible + futureColumnsVisible;
   const windowStartTick = Math.max(0, currentTick - pastColumnsVisible * columnTicks);
@@ -99,13 +102,23 @@ export function ChartBoard() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-4">
+    <div className="mx-auto flex h-[calc(100vh-2rem)] w-full max-w-[1600px] flex-col gap-3">
       <TopBar currentPrice={currentPrice} balance={balance} />
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
-        <Card className="overflow-hidden">
-          <CardContent className="p-3">
-            <div className="relative h-[420px] rounded-lg border border-zinc-800 bg-[radial-gradient(circle_at_20%_20%,rgba(16,185,129,0.15),transparent_55%),linear-gradient(180deg,#0b0f0c_0%,#050706_100%)]">
+      <div className="relative min-h-0 flex-1">
+        <Card className="h-full overflow-hidden">
+          <CardContent className="h-full p-2 md:p-3">
+            <div className="relative h-full min-h-[560px] rounded-lg border border-zinc-800 bg-[radial-gradient(circle_at_20%_20%,rgba(16,185,129,0.15),transparent_55%),linear-gradient(180deg,#0b0f0c_0%,#050706_100%)]">
+              <Button
+                variant="outline"
+                size="sm"
+                className="absolute right-2 top-2 z-50 border-zinc-700 bg-zinc-900/90 text-zinc-200"
+                onClick={() => setPanelOpen((v) => !v)}
+              >
+                {panelOpen ? <PanelRightClose className="mr-1 h-4 w-4" /> : <PanelRightOpen className="mr-1 h-4 w-4" />}
+                {panelOpen ? "Hide Menu" : "Menu"}
+              </Button>
+
               <div
                 className="absolute inset-y-0 left-0 right-[62px] grid"
                 style={{
@@ -119,8 +132,8 @@ export function ChartBoard() {
                 ))}
               </div>
 
-              <div className="absolute inset-y-0 left-0 w-1/2 border-r border-zinc-800/80 bg-zinc-950/22" />
-              <div className="pointer-events-none absolute inset-y-0 left-1/2 z-20 w-px bg-emerald-400/55" />
+              <div className="absolute inset-y-0 left-0 w-[calc((100%-62px)/2)] border-r border-zinc-800/80 bg-zinc-950/22" />
+              <div className="pointer-events-none absolute inset-y-0 left-[calc((100%-62px)/2)] z-20 w-px bg-emerald-400/55" />
 
               <PriceLineOverlay
                 points={priceSeries}
@@ -145,34 +158,42 @@ export function ChartBoard() {
 
               <div className="absolute inset-y-0 right-0 z-20 flex w-[62px] flex-col justify-between border-l border-zinc-800 bg-zinc-950/90 py-1">
                 {yAxisLabels.map((label, index) => (
-                  <span key={`${label}-${index}`} className="px-1 text-right text-[10px] text-zinc-500">
+                  <span key={`${label}-${index}`} className="px-1 text-right text-[11px] text-zinc-500">
                     {label}
                   </span>
                 ))}
               </div>
-            </div>
 
-            <div className="mt-3 min-h-6 text-sm">
-              {localMessage && <span className="text-amber-300">{localMessage}</span>}
-              {!localMessage && ui.message && (
-                <span className={ui.message.kind === "loss" ? "text-red-300" : "text-emerald-300"}>{ui.message.text}</span>
-              )}
+              <div className="pointer-events-none absolute left-2 top-2 z-30 text-sm">
+                {localMessage && <span className="rounded bg-zinc-950/80 px-2 py-1 text-amber-300">{localMessage}</span>}
+                {!localMessage && ui.message && (
+                  <span className={`rounded bg-zinc-950/80 px-2 py-1 ${ui.message.kind === "loss" ? "text-red-300" : "text-emerald-300"}`}>
+                    {ui.message.text}
+                  </span>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <div className="grid gap-4">
-          <StakeControl stake={stake} minStake={config.minStake} maxStake={config.maxStake} setStake={setStake} />
-          <GameControls
-            paused={paused}
-            speed={speed}
-            demoSeedEnabled={demoSeedEnabled}
-            togglePause={togglePause}
-            setSpeed={setSpeed}
-            resetGame={resetGame}
-            toggleDemoSeed={toggleDemoSeed}
-          />
-          <HistoryPanel history={history} openCount={betsOpen.length} />
+        <div
+          className={`absolute bottom-2 right-2 top-2 z-40 w-[330px] overflow-auto rounded-xl border border-zinc-800 bg-zinc-950/95 p-3 shadow-2xl transition-transform duration-300 ${
+            panelOpen ? "pointer-events-auto translate-x-0" : "pointer-events-none translate-x-[120%]"
+          }`}
+        >
+          <div className="grid gap-3">
+            <StakeControl stake={stake} minStake={config.minStake} maxStake={config.maxStake} setStake={setStake} />
+            <GameControls
+              paused={paused}
+              speed={speed}
+              demoSeedEnabled={demoSeedEnabled}
+              togglePause={togglePause}
+              setSpeed={setSpeed}
+              resetGame={resetGame}
+              toggleDemoSeed={toggleDemoSeed}
+            />
+            <HistoryPanel history={history} openCount={betsOpen.length} />
+          </div>
         </div>
       </div>
     </div>
