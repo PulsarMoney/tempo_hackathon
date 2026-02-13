@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PanelRightClose, PanelRightOpen } from "lucide-react";
 
 import { getColumnTicks } from "@/lib/game/constants";
@@ -17,8 +17,10 @@ import { GameControls } from "@/components/game/game-controls";
 import { HistoryPanel } from "@/components/game/history-panel";
 
 export function ChartBoard() {
-  const [localMessage, setLocalMessage] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [toasts, setToasts] = useState<Array<{ id: number; text: string; tone: "neutral" | "win" | "warn" }>>([]);
+  const toastSeq = useRef(1);
+  const lastHitTickSeen = useRef(-1);
 
   const config = useGameStore((state) => state.config);
   const balance = useGameStore((state) => state.balance);
@@ -81,13 +83,27 @@ export function ChartBoard() {
     return () => clearInterval(id);
   }, [paused, speed, config.tickMs, tick]);
 
+  const pushToast = (text: string, tone: "neutral" | "win" | "warn" = "neutral") => {
+    const id = toastSeq.current;
+    toastSeq.current += 1;
+    setToasts((prev) => [...prev, { id, text, tone }].slice(-4));
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 1800);
+  };
+
   useEffect(() => {
-    if (!localMessage) {
+    if (ui.hitEffectTick <= lastHitTickSeen.current) {
       return;
     }
-    const id = setTimeout(() => setLocalMessage(null), 1500);
-    return () => clearTimeout(id);
-  }, [localMessage]);
+    lastHitTickSeen.current = ui.hitEffectTick;
+    const wonNow = history.filter((bet) => bet.status === "won" && bet.resolvedAtTick === ui.hitEffectTick);
+    if (wonNow.length === 0) {
+      return;
+    }
+    const total = wonNow.reduce((acc, bet) => acc + bet.payout, 0);
+    pushToast(`Hit! +$${total.toFixed(2)}`, "win");
+  }, [ui.hitEffectTick, history]);
 
   const yAxisLabels = useMemo(() => {
     return Array.from({ length: config.rows }, (_, row) => rowBand(row, config).high.toFixed(2));
@@ -96,7 +112,9 @@ export function ChartBoard() {
   const onPlaceBet = (col: number, row: number, multiplier: number) => {
     const result = placeBet(col, row, multiplier);
     if (!result.ok) {
-      setLocalMessage(result.reason ?? "Unable to place bet");
+      pushToast(result.reason ?? "Unable to place bet", "warn");
+    } else {
+      pushToast(`Bet placed: $${stake.toFixed(0)} @ x${multiplier.toFixed(2)}`, "neutral");
     }
     return result;
   };
@@ -108,7 +126,7 @@ export function ChartBoard() {
       <div className="relative min-h-0 flex-1">
         <Card className="h-full overflow-hidden">
           <CardContent className="h-full p-2 md:p-3">
-            <div className="relative h-full min-h-[560px] rounded-lg border border-zinc-800 bg-[radial-gradient(circle_at_20%_20%,rgba(16,185,129,0.15),transparent_55%),linear-gradient(180deg,#0b0f0c_0%,#050706_100%)]">
+            <div className="relative h-full min-h-[560px] rounded-lg border border-zinc-800 bg-[radial-gradient(circle_at_20%_20%,rgba(51,108,255,0.15),transparent_55%),linear-gradient(180deg,#111827_0%,#090e19_100%)]">
               <Button
                 variant="outline"
                 size="sm"
@@ -133,7 +151,7 @@ export function ChartBoard() {
               </div>
 
               <div className="absolute inset-y-0 left-0 w-[calc((100%-62px)/2)] border-r border-zinc-800/80 bg-zinc-950/22" />
-              <div className="pointer-events-none absolute inset-y-0 left-[calc((100%-62px)/2)] z-20 w-px bg-emerald-400/55" />
+              <div className="pointer-events-none absolute inset-y-0 left-[calc((100%-62px)/2)] z-20 w-px bg-primary/55" />
 
               <PriceLineOverlay
                 points={priceSeries}
@@ -164,13 +182,21 @@ export function ChartBoard() {
                 ))}
               </div>
 
-              <div className="pointer-events-none absolute left-2 top-2 z-30 text-sm">
-                {localMessage && <span className="rounded bg-zinc-950/80 px-2 py-1 text-amber-300">{localMessage}</span>}
-                {!localMessage && ui.message && (
-                  <span className={`rounded bg-zinc-950/80 px-2 py-1 ${ui.message.kind === "loss" ? "text-red-300" : "text-emerald-300"}`}>
-                    {ui.message.text}
-                  </span>
-                )}
+              <div className="pointer-events-none absolute left-2 top-2 z-30 space-y-2">
+                {toasts.map((toast) => (
+                  <div
+                    key={toast.id}
+                    className={`rounded-md border bg-zinc-950/90 px-3 py-1.5 text-sm shadow-lg ${
+                      toast.tone === "win"
+                        ? "border-success/70 text-green-200"
+                        : toast.tone === "warn"
+                          ? "border-warning/60 text-amber-200"
+                          : "border-zinc-700 text-zinc-200"
+                    }`}
+                  >
+                    {toast.text}
+                  </div>
+                ))}
               </div>
             </div>
           </CardContent>

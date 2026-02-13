@@ -42,18 +42,39 @@ export function PriceLineOverlay({
   const currentY = ((maxPrice - currentPoint.price) / priceRange) * height;
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="pointer-events-none absolute inset-y-0 left-0 right-[62px] h-full w-full">
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      className="pointer-events-none absolute inset-y-0 left-0 right-[62px] h-full w-full"
+      shapeRendering="geometricPrecision"
+    >
       <defs>
-        <filter id="glow">
-          <feGaussianBlur stdDeviation="2.5" result="blur" />
+        <filter id="lineGlow">
+          <feGaussianBlur stdDeviation="1.1" result="blur" />
           <feMerge>
             <feMergeNode in="blur" />
             <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
       </defs>
-      <polyline points={polyline} fill="none" stroke="#34d399" strokeWidth="2.8" filter="url(#glow)" />
-      <circle cx={currentX} cy={currentY} r="6.5" fill="#4ade80" className="animate-pulse" filter="url(#glow)" />
+      <polyline
+        points={polyline}
+        fill="none"
+        stroke="#7aa0ff"
+        strokeWidth="1.2"
+        strokeOpacity="0.45"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <polyline
+        points={polyline}
+        fill="none"
+        stroke="#336CFF"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        filter="url(#lineGlow)"
+      />
+      <circle cx={currentX} cy={currentY} r="4.4" fill="#336CFF" className="animate-pulse" filter="url(#lineGlow)" />
     </svg>
   );
 }

@@ -24,7 +24,7 @@ export function StakeControl({ stake, minStake, maxStake, setStake }: StakeContr
           <Button variant="outline" size="icon" onClick={() => setStake(stake - 1)} disabled={stake <= minStake}>
             <Minus className="h-4 w-4" />
           </Button>
-          <div className="flex-1 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-center font-semibold text-emerald-300">
+          <div className="flex-1 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-center font-semibold text-blue-200">
             ${stake.toFixed(0)}
           </div>
           <Button variant="outline" size="icon" onClick={() => setStake(stake + 1)} disabled={stake >= maxStake}>

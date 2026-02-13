@@ -18,11 +18,15 @@ const config: Config = {
         primary: "hsl(var(--primary))",
         "primary-foreground": "hsl(var(--primary-foreground))",
         muted: "hsl(var(--muted))",
-        "muted-foreground": "hsl(var(--muted-foreground))"
+        "muted-foreground": "hsl(var(--muted-foreground))",
+        success: "hsl(var(--success))",
+        warning: "hsl(var(--warning))",
+        destructive: "hsl(var(--destructive))",
+        "destructive-foreground": "hsl(var(--destructive-foreground))"
       },
       boxShadow: {
-        neon: "0 0 24px rgba(34, 197, 94, 0.35)",
-        pulse: "0 0 10px rgba(16, 185, 129, 0.7)"
+        neon: "0 10px 30px rgba(0, 0, 0, 0.35)",
+        pulse: "0 0 12px rgba(51, 108, 255, 0.45)"
       },
       keyframes: {
         pulseglow: {

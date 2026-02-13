@@ -4,7 +4,7 @@ export const GAME_CONFIG: GameConfig = {
   rows: 12,
   colsFuture: 10,
   columnDurationMs: 5000,
-  tickMs: 100,
+  tickMs: 50,
   minPrice: 80,
   maxPrice: 120,
   startPrice: 100,
@@ -14,7 +14,7 @@ export const GAME_CONFIG: GameConfig = {
   houseEdge: 0.06,
   historyLimit: 80,
   priceRetentionTicks: 1200,
-  demoSpikeTick: 450,
+  demoSpikeTick: 900,
 };
 
 export const INITIAL_BALANCE = 250;

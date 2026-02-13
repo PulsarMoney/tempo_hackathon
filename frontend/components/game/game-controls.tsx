@@ -60,7 +60,7 @@ export function GameControls({
           <span className="text-zinc-200">Deterministic demo seed</span>
           <input
             type="checkbox"
-            className="h-4 w-4 accent-emerald-400"
+            className="h-4 w-4 accent-primary"
             checked={demoSeedEnabled}
             onChange={(e) => toggleDemoSeed(e.target.checked)}
           />

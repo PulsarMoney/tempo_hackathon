@@ -14,15 +14,15 @@ export function TopBar({ currentPrice, balance }: TopBarProps) {
   return (
     <div className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-950/80 px-4 py-3">
       <div className="flex items-center gap-3">
-        <Badge variant="secondary" className="border-emerald-600/50 bg-emerald-500/15 text-emerald-200">
+        <Badge variant="secondary" className="border-primary/40 bg-primary/15 text-blue-200">
           CHART / USD
         </Badge>
         <div className="flex items-center gap-2 text-sm text-zinc-300">
-          <Activity className="h-4 w-4 text-emerald-400" />
+          <Activity className="h-4 w-4 text-primary" />
           Price <span className="font-semibold text-white">${currentPrice.toFixed(2)}</span>
         </div>
-        <div className="flex items-center gap-1 text-xs text-emerald-300">
-          <CircleDot className="h-3 w-3 animate-pulse text-emerald-400" />
+        <div className="flex items-center gap-1 text-xs text-blue-300">
+          <CircleDot className="h-3 w-3 animate-pulse text-primary" />
           Sim feed live
         </div>
       </div>
