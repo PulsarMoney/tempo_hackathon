@@ -13,8 +13,8 @@ It is designed to showcase Tempo-native primitives for social finance:
 ---
 
 ## 🎥 Demo
-- Demo video: `TODO`
-- Live deployment: `TODO`
+- Demo video: 'https://github.com/PulsarMoney/tempo_hackathon'
+- Live deployment: 'https://tempo-hackathon-inky.vercel.app/'
 - Tempo explorer base: `https://explore.tempo.xyz`
 
 ---
