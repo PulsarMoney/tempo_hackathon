@@ -4,8 +4,6 @@ import { CreatePoolDto, JoinPoolDto, ResolvePoolDto } from './dto';
 import { AuthGuard } from '../auth/auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../common/interfaces/authenticated-user';
-import { Roles } from '../common/decorators/roles.decorator';
-import { RolesGuard } from '../common/guards/roles.guard';
 
 @Controller('pools')
 @UseGuards(AuthGuard)
@@ -37,8 +35,6 @@ export class PoolsController {
   }
 
   @Post(':poolId/resolve')
-  @UseGuards(RolesGuard)
-  @Roles('admin', 'operator')
   async resolvePool(
     @Param('poolId') poolId: string,
     @CurrentUser() currentUser: AuthenticatedUser,

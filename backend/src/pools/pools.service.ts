@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -211,6 +212,12 @@ export class PoolsService {
     const pool = await this.poolsRepo.findOne({ where: { id: poolId } });
     if (!pool) {
       throw new NotFoundException('Pool not found');
+    }
+
+    const isPrivileged = currentUser.roles.includes('admin') || currentUser.roles.includes('operator');
+    const isCreator = pool.creatorUserId === currentUser.userId;
+    if (!isCreator && !isPrivileged) {
+      throw new ForbiddenException('Only the pool creator, admin, or operator can resolve this pool');
     }
 
     if (pool.status === 'resolved' || pool.status === 'paid') {
