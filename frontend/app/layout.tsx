@@ -3,8 +3,8 @@ import "./globals.css";
 import { AppPrivyProvider } from "@/components/providers/privy-provider";
 
 export const metadata: Metadata = {
-  title: "Chart Hunter Demo",
-  description: "Neon chart prediction game MVP",
+  title: "Pulsar Predict",
+  description: "Pulsar Predict on Tempo",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

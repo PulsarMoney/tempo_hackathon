@@ -21,7 +21,7 @@ async function bootstrap() {
   const port = Number(process.env.PORT ?? 4000);
   await app.listen(port);
   // eslint-disable-next-line no-console
-  console.log(`tempo-social-pools backend listening on :${port}`);
+  console.log(`pulsar-predict backend listening on :${port}`);
 }
 
 void bootstrap();

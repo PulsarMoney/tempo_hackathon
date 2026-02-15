@@ -182,7 +182,7 @@ export function SocialPoolsPanel() {
   return (
     <Card>
       <CardHeader className="space-y-1 pb-2">
-        <CardTitle className="text-base text-zinc-100">Prediction Pools</CardTitle>
+        <CardTitle className="text-base text-zinc-100">Pulsar Predict Pools</CardTitle>
         <p className="text-xs text-zinc-400">Simple flow: create a pool, join with one payment, then resolve and pay winners.</p>
       </CardHeader>
       <CardContent className="relative space-y-3">
@@ -223,7 +223,7 @@ export function SocialPoolsPanel() {
         {!authenticated && (
           <div className="absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-background/75 backdrop-blur-sm">
             <div className="mx-4 w-full max-w-sm rounded-lg border border-border bg-card p-4 text-center">
-              <p className="text-sm font-semibold text-foreground">Login to use Prediction Pools</p>
+              <p className="text-sm font-semibold text-foreground">Login to use Pulsar Predict</p>
               <p className="mt-1 text-xs text-muted-foreground">
                 Create pools, join with one payment, and track results after signing in.
               </p>

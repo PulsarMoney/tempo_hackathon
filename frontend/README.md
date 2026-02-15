@@ -1,4 +1,4 @@
-# Chart Hunter Frontend
+# Pulsar Predict Frontend
 
 ## Privy + Tempo setup
 
