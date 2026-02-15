@@ -15,6 +15,7 @@ import { BetGrid } from "@/components/game/bet-grid";
 import { StakeControl } from "@/components/game/stake-control";
 import { GameControls } from "@/components/game/game-controls";
 import { HistoryPanel } from "@/components/game/history-panel";
+import { SocialPoolsPanel } from "@/components/pools/social-pools-panel";
 
 export function ChartBoard() {
   const [panelOpen, setPanelOpen] = useState(false);
@@ -219,6 +220,7 @@ export function ChartBoard() {
               toggleDemoSeed={toggleDemoSeed}
             />
             <HistoryPanel history={history} openCount={betsOpen.length} />
+            <SocialPoolsPanel />
           </div>
         </div>
       </div>

@@ -15,6 +15,8 @@ function shortAddress(address?: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
+const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:4000";
+
 export function PrivyAuthControls() {
   const privyEnabled = Boolean(process.env.NEXT_PUBLIC_PRIVY_APP_ID);
   if (!privyEnabled) {
@@ -98,14 +100,11 @@ function PrivyAuthControlsEnabled() {
       setSyncStatus("syncing");
 
       try {
-        const response = await fetch("/api/auth/privy/verify", {
+        const response = await fetch(`${backendUrl}/auth/privy/verify`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             accessToken: token,
-            walletAddress: primaryWalletAddress,
-            walletChainId: activeEthereumWallet?.chainId ?? null,
-            linkedAccounts: user.linkedAccounts,
           }),
         });
 
