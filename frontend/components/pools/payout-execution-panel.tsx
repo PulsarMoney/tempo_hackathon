@@ -11,9 +11,9 @@ type PayoutExecutionPanelProps = {
 
 export function PayoutExecutionPanel({ status, txHashes, failures, explorerUrl }: PayoutExecutionPanelProps) {
   return (
-    <div className="space-y-2 rounded-md border border-border bg-zinc-900/40 p-2">
+    <div className="space-y-2 rounded-md border border-border bg-zinc-900/40 p-3">
       <div className="flex items-center justify-between">
-        <h4 className="text-xs font-semibold text-zinc-300">Payout execution</h4>
+        <h4 className="text-sm font-semibold text-zinc-200">Payout Activity</h4>
         <TxStatusBadge status={status} />
       </div>
 
@@ -34,6 +34,8 @@ export function PayoutExecutionPanel({ status, txHashes, failures, explorerUrl }
           ))}
         </div>
       )}
+
+      {txHashes.length === 0 && failures.length === 0 && <p className="text-xs text-zinc-500">No payout transactions yet.</p>}
     </div>
   );
 }

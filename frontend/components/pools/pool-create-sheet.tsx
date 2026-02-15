@@ -39,16 +39,18 @@ export function PoolCreateSheet({ onCreate }: PoolCreateSheetProps) {
   return (
     <Sheet>
       <SheetContent className="space-y-3">
-        <h3 className="text-sm font-semibold text-zinc-200">Create Pool</h3>
-        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Pool title" />
+        <h3 className="text-sm font-semibold text-zinc-200">Create a New Pool</h3>
+        <p className="text-xs text-zinc-400">Set a question, entry amount, and close time. Users can join right away.</p>
+        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Question (e.g. Who closes higher by tonight?)" />
         <div className="grid grid-cols-2 gap-2">
           <Input value={entryAmount} onChange={(e) => setEntryAmount(e.target.value)} placeholder="Entry amount" />
-          <Input value={tokenAddress} onChange={(e) => setTokenAddress(e.target.value)} placeholder="Token address" />
+          <Input value={tokenAddress} readOnly disabled placeholder="Token address" />
         </div>
+        <p className="text-[11px] text-zinc-500">Token is fixed to the configured demo stablecoin for this environment.</p>
         <Input value={closeAt} onChange={(e) => setCloseAt(e.target.value)} type="datetime-local" />
 
         <Button onClick={submit} disabled={saving} className="w-full">
-          {saving ? "Creating..." : "Create Pool"}
+          {saving ? "Creating Pool..." : "Create Pool"}
         </Button>
       </SheetContent>
     </Sheet>
