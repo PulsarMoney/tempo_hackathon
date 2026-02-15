@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -37,6 +38,12 @@ export class PayoutsService {
 
     if (!pool) {
       throw new NotFoundException('Pool not found');
+    }
+
+    const isPrivileged = input.currentUser.roles.includes('admin') || input.currentUser.roles.includes('operator');
+    const isCreator = pool.creatorUserId === input.currentUser.userId;
+    if (!isCreator && !isPrivileged) {
+      throw new ForbiddenException('Only the pool creator, admin, or operator can execute payouts');
     }
 
     if (pool.status !== 'resolved') {

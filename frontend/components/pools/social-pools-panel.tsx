@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useActiveWallet, useLogin, usePrivy } from "@privy-io/react-auth";
 import { encodeFunctionData, parseUnits } from "viem";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy, Link2 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -31,17 +31,32 @@ const explorerUrl = process.env.NEXT_PUBLIC_TEMPO_EXPLORER_URL ?? "https://explo
 const escrowAddress = process.env.NEXT_PUBLIC_OPERATOR_ESCROW_ADDRESS as `0x${string}` | undefined;
 const tokenDecimals = Number(process.env.NEXT_PUBLIC_DEMO_TOKEN_DECIMALS ?? "6");
 
+type SocialPoolsPanelProps = {
+  onActivePoolChange?: (pool: PoolSummary | null) => void;
+  activePlayMode: "demo" | "pool";
+  activePoolId: string | null;
+  onSelectPoolPlay: (pool: PoolSummary) => void;
+  onSelectDemoPlay: () => void;
+};
+
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function SocialPoolsPanel() {
+export function SocialPoolsPanel({
+  onActivePoolChange,
+  activePlayMode,
+  activePoolId,
+  onSelectPoolPlay,
+  onSelectDemoPlay,
+}: SocialPoolsPanelProps) {
   const { authenticated, getAccessToken } = usePrivy();
   const { login } = useLogin();
   const { wallet } = useActiveWallet();
 
   const [poolId, setPoolId] = useState("");
   const [pool, setPool] = useState<PoolSummary | null>(null);
+  const [collapsed, setCollapsed] = useState(false);
   const [status, setStatus] = useState<TxStatus>("idle");
   const [message, setMessage] = useState<string>("");
   const [txHashes, setTxHashes] = useState<string[]>([]);
@@ -49,12 +64,41 @@ export function SocialPoolsPanel() {
 
   const canUse = authenticated && wallet?.type === "ethereum";
 
+  const syncPool = (next: PoolSummary | null) => {
+    setPool(next);
+    onActivePoolChange?.(next);
+  };
+
   const loadPool = async () => {
     const token = await getAccessToken();
     if (!token || !poolId) return;
     const data = await getPool(token, poolId);
-    setPool(data);
+    syncPool(data);
   };
+
+  useEffect(() => {
+    if (!authenticated || poolId) {
+      return;
+    }
+    const fromUrl = new URLSearchParams(window.location.search).get("poolId");
+    if (fromUrl) {
+      setPoolId(fromUrl);
+    }
+  }, [authenticated, poolId]);
+
+  useEffect(() => {
+    if (!authenticated || !poolId || pool?.id === poolId) {
+      return;
+    }
+    const run = async () => {
+      const token = await getAccessToken();
+      if (!token) return;
+      const data = await getPool(token, poolId);
+      setPool(data);
+      onActivePoolChange?.(data);
+    };
+    void run();
+  }, [authenticated, poolId, pool?.id, getAccessToken, onActivePoolChange]);
 
   const handleCreate = async (payload: {
     title: string;
@@ -70,7 +114,8 @@ export function SocialPoolsPanel() {
     });
     setPoolId(created.poolId);
     setMessage(`Pool created: ${created.poolId}`);
-    await loadPool();
+    const data = await getPool(token, created.poolId);
+    syncPool(data);
   };
 
   const joinPool = async () => {
@@ -132,7 +177,8 @@ export function SocialPoolsPanel() {
 
     setStatus("confirmed");
     setMessage(`Join confirmed: ${hash}`);
-    await loadPool();
+    const updated = await getPool(token, pool.id);
+    syncPool(updated);
   };
 
   const resolveCurrentPool = async () => {
@@ -143,8 +189,9 @@ export function SocialPoolsPanel() {
       outcome: { strategy: "equal_split_if_no_winners" },
       reason: "Manual admin resolve (MVP)",
     });
-    setMessage("Pool resolved");
-    await loadPool();
+    setMessage("Pool resolved. Next step: Pay Winners.");
+    const updated = await getPool(token, pool.id);
+    syncPool(updated);
   };
 
   const executeCurrentPayout = async () => {
@@ -162,7 +209,14 @@ export function SocialPoolsPanel() {
     setFailures(final.failures);
     setStatus(final.status === "failed" ? "failed" : final.status === "confirmed" ? "confirmed" : "confirming");
 
-    await loadPool();
+    const updated = await getPool(token, pool.id);
+    syncPool(updated);
+  };
+
+  const copyPoolId = async () => {
+    if (!pool?.id) return;
+    await navigator.clipboard.writeText(pool.id);
+    setMessage("Pool ID copied. Share it with friends so they can join.");
   };
 
   const currentPool = useMemo(
@@ -181,10 +235,28 @@ export function SocialPoolsPanel() {
 
   return (
     <Card>
-      <CardHeader className="space-y-1 pb-2">
-        <CardTitle className="text-base text-zinc-100">Pulsar Predict Pools</CardTitle>
-        <p className="text-xs text-zinc-400">Simple flow: create a pool, join with one payment, then resolve and pay winners.</p>
+      <CardHeader className="pb-2">
+        <div className="flex items-start justify-between gap-2">
+          <div className="space-y-1">
+            <CardTitle className="text-base text-zinc-100">Pulsar Predict Pools</CardTitle>
+            <p className="text-xs text-zinc-400">Create a pool, share ID, switch to pool play, and settle with onchain payouts.</p>
+          </div>
+          <Button size="sm" variant="outline" className="gap-1" onClick={() => setCollapsed((v) => !v)}>
+            {collapsed ? (
+              <>
+                <ChevronDown className="h-3.5 w-3.5" />
+                Expand
+              </>
+            ) : (
+              <>
+                <ChevronUp className="h-3.5 w-3.5" />
+                Collapse
+              </>
+            )}
+          </Button>
+        </div>
       </CardHeader>
+      {!collapsed && (
       <CardContent className="relative space-y-3">
         <div className={cn(!authenticated && "pointer-events-none select-none opacity-40")}>
           <PoolCreateSheet onCreate={handleCreate} />
@@ -200,9 +272,32 @@ export function SocialPoolsPanel() {
                 Open
               </Button>
             </div>
+            {pool?.id && (
+              <div className="mt-2 flex gap-2">
+                <Button size="sm" variant="outline" onClick={copyPoolId} className="gap-1">
+                  <Copy className="h-3.5 w-3.5" />
+                  Copy ID
+                </Button>
+                <a
+                  className="inline-flex items-center gap-1 rounded-md border border-zinc-700 px-2 py-1 text-xs text-zinc-200"
+                  href={`?poolId=${pool.id}`}
+                >
+                  <Link2 className="h-3.5 w-3.5" />
+                  Share Link
+                </a>
+              </div>
+            )}
           </div>
 
-          <PoolDetailPanel pool={currentPool} onJoin={joinPool} onResolve={resolveCurrentPool} onExecutePayout={executeCurrentPayout} />
+          <PoolDetailPanel
+            pool={currentPool}
+            onJoin={joinPool}
+            onResolve={resolveCurrentPool}
+            onExecutePayout={executeCurrentPayout}
+            onSelectPoolPlay={() => pool && onSelectPoolPlay(pool)}
+            onSelectDemoPlay={onSelectDemoPlay}
+            isPlayingThisPool={Boolean(pool?.id && activePlayMode === "pool" && activePoolId === pool.id)}
+          />
 
           <Separator />
           <ParticipantList participants={pool?.participants ?? []} explorerUrl={explorerUrl} />
@@ -234,6 +329,7 @@ export function SocialPoolsPanel() {
           </div>
         )}
       </CardContent>
+      )}
     </Card>
   );
 }

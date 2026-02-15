@@ -15,6 +15,7 @@ describe("settlement", () => {
     multiplier: 2,
     placedAtTick: 0,
     status: "open",
+    playMode: "demo",
   };
 
   test("resolves win when price enters row band", () => {

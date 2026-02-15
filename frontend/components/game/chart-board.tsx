@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PanelRightClose, PanelRightOpen } from "lucide-react";
+import { useActiveWallet } from "@privy-io/react-auth";
 
 import { getColumnTicks } from "@/lib/game/constants";
 import { getCurrentColumnProgress, getFutureGrid } from "@/lib/game/selectors";
@@ -16,12 +17,17 @@ import { StakeControl } from "@/components/game/stake-control";
 import { GameControls } from "@/components/game/game-controls";
 import { HistoryPanel } from "@/components/game/history-panel";
 import { SocialPoolsPanel } from "@/components/pools/social-pools-panel";
+import { PoolTrackerPanel } from "@/components/pools/pool-tracker-panel";
+import type { PoolSummary } from "@/lib/pools/api";
 
 export function ChartBoard() {
   const [panelOpen, setPanelOpen] = useState(false);
   const [toasts, setToasts] = useState<Array<{ id: number; text: string; tone: "neutral" | "win" | "warn" }>>([]);
+  const [activePlayMode, setActivePlayMode] = useState<"demo" | "pool">("demo");
+  const [activePool, setActivePool] = useState<PoolSummary | null>(null);
   const toastSeq = useRef(1);
   const lastHitTickSeen = useRef(-1);
+  const { wallet } = useActiveWallet();
 
   const config = useGameStore((state) => state.config);
   const balance = useGameStore((state) => state.balance);
@@ -111,11 +117,18 @@ export function ChartBoard() {
   }, [config]);
 
   const onPlaceBet = (col: number, row: number, multiplier: number) => {
-    const result = placeBet(col, row, multiplier);
+    const context =
+      activePlayMode === "pool" && activePool
+        ? { playMode: "pool" as const, poolId: activePool.id, poolTitle: activePool.title }
+        : { playMode: "demo" as const };
+    const result = placeBet(col, row, multiplier, context);
     if (!result.ok) {
       pushToast(result.reason ?? "Unable to place bet", "warn");
     } else {
-      pushToast(`Bet placed: $${stake.toFixed(0)} @ x${multiplier.toFixed(2)}`, "neutral");
+      pushToast(
+        `${context.playMode === "pool" ? "Pool" : "Demo"} bet placed: $${stake.toFixed(0)} @ x${multiplier.toFixed(2)}`,
+        "neutral",
+      );
     }
     return result;
   };
@@ -199,6 +212,14 @@ export function ChartBoard() {
                   </div>
                 ))}
               </div>
+
+              <div className="pointer-events-none absolute bottom-2 left-2 z-30">
+                <div className="rounded-md border border-zinc-700 bg-zinc-950/90 px-2 py-1 text-xs text-zinc-200">
+                  {activePlayMode === "pool" && activePool
+                    ? `POOL PLAY · ${activePool.title} (${activePool.id.slice(0, 6)})`
+                    : "DEMO PLAY · Results do not affect pool payouts"}
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -219,8 +240,30 @@ export function ChartBoard() {
               resetGame={resetGame}
               toggleDemoSeed={toggleDemoSeed}
             />
-            <HistoryPanel history={history} openCount={betsOpen.length} />
-            <SocialPoolsPanel />
+            <PoolTrackerPanel
+              activePool={activePool}
+              playMode={activePlayMode}
+              activePoolId={activePool?.id ?? null}
+              history={history}
+              currentUserAddress={wallet?.address}
+            />
+            <HistoryPanel history={history} openCount={betsOpen.length} activePoolId={activePool?.id ?? null} />
+            <SocialPoolsPanel
+              activePlayMode={activePlayMode}
+              activePoolId={activePool?.id ?? null}
+              onSelectPoolPlay={(pool) => {
+                setActivePool(pool);
+                setActivePlayMode("pool");
+                pushToast(`Pool play enabled: ${pool.title}`, "neutral");
+              }}
+              onSelectDemoPlay={() => {
+                setActivePlayMode("demo");
+                pushToast("Switched to demo play mode", "neutral");
+              }}
+              onActivePoolChange={(pool) => {
+                setActivePool(pool);
+              }}
+            />
           </div>
         </div>
       </div>

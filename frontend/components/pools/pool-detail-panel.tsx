@@ -15,11 +15,17 @@ export function PoolDetailPanel({
   onJoin,
   onResolve,
   onExecutePayout,
+  onSelectPoolPlay,
+  onSelectDemoPlay,
+  isPlayingThisPool,
 }: {
   pool: PoolDetail | null;
   onJoin: () => Promise<void>;
   onResolve: () => Promise<void>;
   onExecutePayout: () => Promise<void>;
+  onSelectPoolPlay: () => void;
+  onSelectDemoPlay: () => void;
+  isPlayingThisPool: boolean;
 }) {
   if (!pool) {
     return <p className="text-xs text-zinc-500">No active pool selected yet. Create one above or load by ID.</p>;
@@ -32,11 +38,26 @@ export function PoolDetailPanel({
         <p className="text-xs text-zinc-400">Entry amount: {pool.entryAmount}</p>
         <p className="text-xs text-zinc-500">Status: {pool.status}</p>
       </div>
+
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <Button variant={isPlayingThisPool ? "default" : "outline"} onClick={onSelectPoolPlay}>
+          Play This Pool
+        </Button>
+        <Button variant={!isPlayingThisPool ? "default" : "outline"} onClick={onSelectDemoPlay}>
+          Switch To Demo
+        </Button>
+      </div>
+
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         <Button onClick={onJoin}>Join</Button>
-        <Button variant="outline" onClick={onResolve}>Resolve</Button>
-        <Button variant="outline" onClick={onExecutePayout}>Pay Winners</Button>
+        <Button variant="outline" onClick={onResolve}>
+          Resolve
+        </Button>
+        <Button variant="outline" onClick={onExecutePayout}>
+          Pay Winners
+        </Button>
       </div>
+
       <details className="rounded border border-zinc-800 px-2 py-1 text-xs">
         <summary className="cursor-pointer text-zinc-400">Technical details</summary>
         <div className="mt-2 space-y-1 text-zinc-500">

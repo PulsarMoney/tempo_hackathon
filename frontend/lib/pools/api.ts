@@ -6,7 +6,7 @@ export type PoolSummary = {
   tokenAddress: string;
   closeAt: string;
   participants?: Array<{ id: string; joinStatus: string; walletAddress: string | null; joinTxHash: string | null }>;
-  payouts?: Array<{ id: string; amount: string; txHash: string | null; status: string }>;
+  payouts?: Array<{ id: string; participantId: string; amount: string; txHash: string | null; status: string }>;
   events?: Array<{ id: string; eventType: string; createdAt: string }>;
 };
 

@@ -42,7 +42,12 @@ type GameState = {
   };
 
   tick: () => void;
-  placeBet: (col: number, row: number, multiplier: number) => { ok: boolean; reason?: string };
+  placeBet: (
+    col: number,
+    row: number,
+    multiplier: number,
+    context?: { playMode: "demo" | "pool"; poolId?: string; poolTitle?: string }
+  ) => { ok: boolean; reason?: string };
   setStake: (value: number) => void;
   togglePause: () => void;
   setSpeed: (value: GameSpeed) => void;
@@ -210,7 +215,7 @@ export const useGameStore = create<GameState>()(
       });
     },
 
-    placeBet: (col, row, multiplier) => {
+    placeBet: (col, row, multiplier, context) => {
       const state = get();
       const columnTicks = getColumnTicks(state.config);
       const currentColumn = Math.floor(state.currentTick / columnTicks) + 1;
@@ -238,6 +243,9 @@ export const useGameStore = create<GameState>()(
         multiplier,
         placedAtTick: state.currentTick,
         status: "open",
+        playMode: context?.playMode ?? "demo",
+        poolId: context?.poolId,
+        poolTitle: context?.poolTitle,
       };
 
       set((draft) => {

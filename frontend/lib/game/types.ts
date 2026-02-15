@@ -43,6 +43,9 @@ export type Bet = {
   placedAtTick: number;
   status: BetStatus;
   payout?: number;
+  playMode: "demo" | "pool";
+  poolId?: string;
+  poolTitle?: string;
 };
 
 export type ResolvedBet = Bet & {
