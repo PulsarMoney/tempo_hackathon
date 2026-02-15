@@ -4,6 +4,7 @@ import { Activity, CircleDot } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { BalancePill } from "@/components/game/balance-pill";
+import { PrivyAuthControls } from "@/components/auth/privy-auth-controls";
 
 type TopBarProps = {
   currentPrice: number;
@@ -12,7 +13,7 @@ type TopBarProps = {
 
 export function TopBar({ currentPrice, balance }: TopBarProps) {
   return (
-    <div className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-950/80 px-4 py-3">
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-zinc-800 bg-zinc-950/80 px-4 py-3">
       <div className="flex items-center gap-3">
         <Badge variant="secondary" className="border-primary/40 bg-primary/15 text-blue-200">
           CHART / USD
@@ -26,7 +27,10 @@ export function TopBar({ currentPrice, balance }: TopBarProps) {
           Sim feed live
         </div>
       </div>
-      <BalancePill balance={balance} />
+      <div className="flex items-center gap-2">
+        <BalancePill balance={balance} />
+        <PrivyAuthControls />
+      </div>
     </div>
   );
 }

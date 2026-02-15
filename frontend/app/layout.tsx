@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AppPrivyProvider } from "@/components/providers/privy-provider";
 
 export const metadata: Metadata = {
   title: "Chart Hunter Demo",
@@ -9,7 +10,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <AppPrivyProvider>{children}</AppPrivyProvider>
+      </body>
     </html>
   );
 }
