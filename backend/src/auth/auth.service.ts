@@ -27,27 +27,44 @@ export class AuthService {
   }
 
   async verifyAccessToken(accessToken: string): Promise<AuthenticatedUser> {
+    let verified:
+      | {
+          user_id: string;
+        }
+      | undefined;
+
     try {
-      const verified = await this.privyClient.utils().auth().verifyAccessToken(accessToken);
-      const privyUser = await this.privyClient.users()._get(verified.user_id);
-      const linkedAccounts = privyUser.linked_accounts ?? [];
-
-      const savedUser = await this.usersService.upsertFromPrivyUser({
-        privyDid: verified.user_id,
-        linkedAccounts,
-      });
-
-      const roles = await this.usersService.getRoles(savedUser.id);
-
-      return {
-        privyDid: savedUser.privyDid,
-        userId: savedUser.id,
-        walletAddress: savedUser.primaryWallet,
-        roles,
-        linkedAccounts,
-      };
-    } catch (error) {
-      throw new UnauthorizedException('Invalid Privy access token');
+      verified = await this.privyClient.utils().auth().verifyAccessToken(accessToken);
+    } catch {
+      try {
+        verified = await this.privyClient.utils().auth().verifyAuthToken(accessToken);
+      } catch {
+        throw new UnauthorizedException('Invalid Privy access token');
+      }
     }
+
+    let linkedAccounts: Array<Record<string, unknown>> = [];
+    try {
+      const privyUser = await this.privyClient.users()._get(verified.user_id);
+      linkedAccounts = (privyUser.linked_accounts as unknown as Array<Record<string, unknown>>) ?? [];
+    } catch {
+      // If profile hydration fails, we still trust the verified access token and continue.
+      linkedAccounts = [];
+    }
+
+    const savedUser = await this.usersService.upsertFromPrivyUser({
+      privyDid: verified.user_id,
+      linkedAccounts,
+    });
+
+    const roles = await this.usersService.getRoles(savedUser.id);
+
+    return {
+      privyDid: savedUser.privyDid,
+      userId: savedUser.id,
+      walletAddress: savedUser.primaryWallet,
+      roles,
+      linkedAccounts,
+    };
   }
 }
