@@ -6,6 +6,16 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+function toLocalDateTimeValue(date: Date) {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  const year = date.getFullYear();
+  const month = pad(date.getMonth() + 1);
+  const day = pad(date.getDate());
+  const hours = pad(date.getHours());
+  const minutes = pad(date.getMinutes());
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
 type PoolCreateSheetProps = {
   onCreate: (payload: {
     title: string;
@@ -19,7 +29,7 @@ export function PoolCreateSheet({ onCreate }: PoolCreateSheetProps) {
   const [title, setTitle] = useState("Who closes higher by tonight?");
   const [entryAmount, setEntryAmount] = useState("5");
   const [tokenAddress, setTokenAddress] = useState(process.env.NEXT_PUBLIC_DEMO_TOKEN_ADDRESS ?? "");
-  const [closeAt, setCloseAt] = useState(new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0, 16));
+  const [closeAt, setCloseAt] = useState(toLocalDateTimeValue(new Date(Date.now() + 60 * 60 * 1000)));
   const [saving, setSaving] = useState(false);
 
   const submit = async () => {

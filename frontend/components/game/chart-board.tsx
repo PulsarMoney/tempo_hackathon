@@ -10,17 +10,19 @@ import { rowBand } from "@/lib/game/odds";
 import { useGameStore } from "@/store/use-game-store";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TopBar } from "@/components/game/top-bar";
 import { PriceLineOverlay } from "@/components/game/price-line-overlay";
 import { BetGrid } from "@/components/game/bet-grid";
 import { StakeControl } from "@/components/game/stake-control";
+import { HistoryPanel } from "@/components/game/history-panel";
 import { SocialPoolsPanel } from "@/components/pools/social-pools-panel";
 import type { PoolSummary } from "@/lib/pools/api";
+import { cn } from "@/lib/utils";
 
 export function ChartBoard() {
   const [panelOpen, setPanelOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(true);
-  const [poolsOpen, setPoolsOpen] = useState(true);
+  const [sidebarTab, setSidebarTab] = useState<"settings" | "pools">("settings");
   const [toasts, setToasts] = useState<Array<{ id: number; text: string; tone: "neutral" | "win" | "warn" }>>([]);
   const [activePlayMode, setActivePlayMode] = useState<"demo" | "pool">("demo");
   const [activePool, setActivePool] = useState<PoolSummary | null>(null);
@@ -146,7 +148,9 @@ export function ChartBoard() {
               <Button
                 variant="outline"
                 size="sm"
-                className="absolute right-2 top-2 z-50 border-zinc-700 bg-zinc-900/90 text-zinc-200"
+                className={`absolute top-2 z-50 border-zinc-700 bg-zinc-900/90 text-zinc-200 transition-all ${
+                  panelOpen ? "right-[350px]" : "right-2"
+                }`}
                 onClick={() => setPanelOpen((v) => !v)}
               >
                 {panelOpen ? <PanelRightClose className="mr-1 h-4 w-4" /> : <PanelRightOpen className="mr-1 h-4 w-4" />}
@@ -231,53 +235,38 @@ export function ChartBoard() {
             panelOpen ? "pointer-events-auto translate-x-0" : "pointer-events-none translate-x-[120%]"
           }`}
         >
-          <div className="grid gap-3">
-            <div className="rounded-lg border border-zinc-800">
-              <Button
-                variant="ghost"
-                className="flex w-full items-center justify-between rounded-b-none rounded-t-lg px-3 py-2 text-sm text-zinc-200"
-                onClick={() => setSettingsOpen((v) => !v)}
-              >
-                Settings
-                {settingsOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
-              </Button>
-              {settingsOpen && (
-                <div className="border-t border-zinc-800 p-3">
-                  <StakeControl stake={stake} minStake={config.minStake} maxStake={config.maxStake} setStake={setStake} />
-                </div>
-              )}
-            </div>
+          <Tabs value={sidebarTab} onValueChange={(value) => setSidebarTab(value as "settings" | "pools")} className="space-y-3">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="settings">Trading</TabsTrigger>
+              <TabsTrigger value="pools">Pools</TabsTrigger>
+            </TabsList>
 
-            <div className="rounded-lg border border-zinc-800">
-              <Button
-                variant="ghost"
-                className="flex w-full items-center justify-between rounded-b-none rounded-t-lg px-3 py-2 text-sm text-zinc-200"
-                onClick={() => setPoolsOpen((v) => !v)}
-              >
-                Pools
-                {poolsOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
-              </Button>
-              {poolsOpen && (
-                <div className="border-t border-zinc-800 p-3">
-                  <SocialPoolsPanel
-                    history={history}
-                    currentUserAddress={wallet?.address}
-                    onSelectPoolPlay={(pool) => {
-                      setActivePool(pool);
-                      setActivePlayMode("pool");
-                      pushToast(`Pool mode active: ${pool.title}`, "neutral");
-                    }}
-                    onActivePoolChange={(pool) => {
-                      setActivePool(pool);
-                      if (!pool) {
-                        setActivePlayMode("demo");
-                      }
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
+            <TabsContent value="settings" forceMount className={cn("m-0 space-y-3", sidebarTab !== "settings" && "hidden")}>
+              <div className="rounded-lg border border-zinc-800 p-3">
+                <p className="mb-2 text-sm font-medium text-zinc-200">Trading</p>
+                <StakeControl stake={stake} minStake={config.minStake} maxStake={config.maxStake} setStake={setStake} />
+              </div>
+              <HistoryPanel history={history} openCount={betsOpen.length} activePoolId={activePool?.id ?? null} />
+            </TabsContent>
+
+            <TabsContent value="pools" forceMount className={cn("m-0", sidebarTab !== "pools" && "hidden")}>
+              <SocialPoolsPanel
+                history={history}
+                currentUserAddress={wallet?.address}
+                onSelectPoolPlay={(pool) => {
+                  setActivePool(pool);
+                  setActivePlayMode("pool");
+                  pushToast(`Pool mode active: ${pool.title}`, "neutral");
+                }}
+                onActivePoolChange={(pool) => {
+                  setActivePool(pool);
+                  if (!pool) {
+                    setActivePlayMode("demo");
+                  }
+                }}
+              />
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </div>

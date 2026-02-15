@@ -336,18 +336,20 @@ export function SocialPoolsPanel({ onActivePoolChange, onSelectPoolPlay, history
         <div className={cn(!authenticated && "pointer-events-none select-none opacity-40")}>
           <div className="rounded-md border border-border bg-zinc-900/40 p-3">
             <p className="mb-2 text-sm font-medium text-zinc-200">Open Pool</p>
-            <div className="flex gap-2">
-              <Input value={poolIdInput} onChange={(e) => setPoolIdInput(e.target.value)} placeholder="Paste pool ID" />
-              <Button variant="outline" onClick={() => void loadPool(poolIdInput)}>
-                Open
-              </Button>
-            </div>
+            <Input
+              value={poolIdInput}
+              onChange={(e) => setPoolIdInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  void loadPool(poolIdInput);
+                }
+              }}
+              placeholder="Paste pool ID and press Enter"
+            />
           </div>
 
           {!pool && (
             <div className="space-y-3 rounded-md border border-zinc-800 bg-zinc-900/40 p-3">
-              <p className="text-sm font-medium text-zinc-200">No Active Pool</p>
-              <p className="text-xs text-zinc-500">Create a pool or open an existing one by ID.</p>
               <PoolCreateSheet onCreate={handleCreate} />
 
               {myPools.length > 0 && (
@@ -457,6 +459,15 @@ export function SocialPoolsPanel({ onActivePoolChange, onSelectPoolPlay, history
               <div className="rounded-md border border-zinc-800 bg-zinc-900/40 p-3 text-xs">
                 <p className="mb-2 text-sm font-medium text-zinc-200">Leaderboard</p>
                 {leaderboard.length === 0 && <p className="text-zinc-500">No scores submitted yet.</p>}
+                {leaderboard.length > 0 && (
+                  <div className="mb-1 grid grid-cols-[30px_1fr_64px_64px_72px] gap-2 px-2 text-[10px] uppercase tracking-wide text-zinc-500">
+                    <span>Rank</span>
+                    <span>Trader</span>
+                    <span>W/L</span>
+                    <span>Status</span>
+                    <span>Net PnL</span>
+                  </div>
+                )}
                 <div className="space-y-1">
                   {leaderboard.map((row) => {
                     const mine =
@@ -467,12 +478,16 @@ export function SocialPoolsPanel({ onActivePoolChange, onSelectPoolPlay, history
                       <div
                         key={row.participantId}
                         className={cn(
-                          "grid grid-cols-[30px_1fr_72px] items-center gap-2 rounded border border-zinc-800 bg-zinc-950/60 px-2 py-1",
+                          "grid grid-cols-[30px_1fr_64px_64px_72px] items-center gap-2 rounded border border-zinc-800 bg-zinc-950/60 px-2 py-1",
                           mine && "border-primary/40 bg-primary/10",
                         )}
                       >
                         <span className="text-zinc-400">{row.rank ?? "-"}</span>
                         <span className="text-zinc-200">{shortAddress(row.walletAddress)}{mine ? " (you)" : ""}</span>
+                        <span className="text-zinc-400">
+                          {row.wins}/{row.losses}
+                        </span>
+                        <span className="text-zinc-400">{row.submitted ? "Submitted" : "Pending"}</span>
                         <span className={row.pnl && Number(row.pnl) >= 0 ? "text-success" : "text-[#EF4444]"}>
                           {row.pnl ? `${Number(row.pnl) >= 0 ? "+" : ""}${Number(row.pnl).toFixed(2)}` : "--"}
                         </span>
