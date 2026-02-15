@@ -114,7 +114,7 @@ export const useGameStore = create<GameState>()(
     config: GAME_CONFIG,
     balance: INITIAL_BALANCE,
     stake: GAME_CONFIG.defaultStake,
-    speed: 1,
+    speed: 4,
     paused: false,
 
     currentTick: INITIAL_SNAPSHOT.initialTick,
@@ -287,7 +287,7 @@ export const useGameStore = create<GameState>()(
         const snap = buildInitialSnapshot(draft.config, draft.seed, draft.demoSeedEnabled);
         draft.balance = INITIAL_BALANCE;
         draft.stake = draft.config.defaultStake;
-        draft.speed = 1;
+        draft.speed = 4;
         draft.paused = false;
 
         draft.currentTick = snap.initialTick;

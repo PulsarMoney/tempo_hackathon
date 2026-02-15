@@ -12,8 +12,10 @@ export class AuthController {
     return {
       ok: true,
       user: {
+        userId: user.userId,
         privyDid: user.privyDid,
         walletAddress: user.walletAddress,
+        roles: user.roles,
         linkedAccounts: user.linkedAccounts,
       },
     };

@@ -14,13 +14,13 @@ import { TopBar } from "@/components/game/top-bar";
 import { PriceLineOverlay } from "@/components/game/price-line-overlay";
 import { BetGrid } from "@/components/game/bet-grid";
 import { StakeControl } from "@/components/game/stake-control";
-import { GameControls } from "@/components/game/game-controls";
-import { HistoryPanel } from "@/components/game/history-panel";
 import { SocialPoolsPanel } from "@/components/pools/social-pools-panel";
 import type { PoolSummary } from "@/lib/pools/api";
 
 export function ChartBoard() {
   const [panelOpen, setPanelOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(true);
+  const [poolsOpen, setPoolsOpen] = useState(true);
   const [toasts, setToasts] = useState<Array<{ id: number; text: string; tone: "neutral" | "win" | "warn" }>>([]);
   const [activePlayMode, setActivePlayMode] = useState<"demo" | "pool">("demo");
   const [activePool, setActivePool] = useState<PoolSummary | null>(null);
@@ -43,10 +43,7 @@ export function ChartBoard() {
   const tick = useGameStore((state) => state.tick);
   const placeBet = useGameStore((state) => state.placeBet);
   const setStake = useGameStore((state) => state.setStake);
-  const togglePause = useGameStore((state) => state.togglePause);
   const setSpeed = useGameStore((state) => state.setSpeed);
-  const resetGame = useGameStore((state) => state.resetGame);
-  const toggleDemoSeed = useGameStore((state) => state.toggleDemoSeed);
 
   const futureGrid = useMemo(
     () =>
@@ -88,6 +85,12 @@ export function ChartBoard() {
 
     return () => clearInterval(id);
   }, [paused, speed, config.tickMs, tick]);
+
+  useEffect(() => {
+    if (speed !== 4) {
+      setSpeed(4);
+    }
+  }, [setSpeed, speed]);
 
   const pushToast = (text: string, tone: "neutral" | "win" | "warn" = "neutral") => {
     const id = toastSeq.current;
@@ -147,7 +150,7 @@ export function ChartBoard() {
                 onClick={() => setPanelOpen((v) => !v)}
               >
                 {panelOpen ? <PanelRightClose className="mr-1 h-4 w-4" /> : <PanelRightOpen className="mr-1 h-4 w-4" />}
-                {panelOpen ? "Hide Menu" : "Menu"}
+                {panelOpen ? "Hide Settings" : "Settings"}
               </Button>
 
               <div
@@ -229,35 +232,51 @@ export function ChartBoard() {
           }`}
         >
           <div className="grid gap-3">
-            <StakeControl stake={stake} minStake={config.minStake} maxStake={config.maxStake} setStake={setStake} />
-            <GameControls
-              paused={paused}
-              speed={speed}
-              demoSeedEnabled={demoSeedEnabled}
-              togglePause={togglePause}
-              setSpeed={setSpeed}
-              resetGame={resetGame}
-              toggleDemoSeed={toggleDemoSeed}
-            />
-            <HistoryPanel history={history} openCount={betsOpen.length} activePoolId={activePool?.id ?? null} />
-            <SocialPoolsPanel
-              activePlayMode={activePlayMode}
-              activePoolId={activePool?.id ?? null}
-              history={history}
-              currentUserAddress={wallet?.address}
-              onSelectPoolPlay={(pool) => {
-                setActivePool(pool);
-                setActivePlayMode("pool");
-                pushToast(`Pool play enabled: ${pool.title}`, "neutral");
-              }}
-              onSelectDemoPlay={() => {
-                setActivePlayMode("demo");
-                pushToast("Switched to demo play mode", "neutral");
-              }}
-              onActivePoolChange={(pool) => {
-                setActivePool(pool);
-              }}
-            />
+            <div className="rounded-lg border border-zinc-800">
+              <Button
+                variant="ghost"
+                className="flex w-full items-center justify-between rounded-b-none rounded-t-lg px-3 py-2 text-sm text-zinc-200"
+                onClick={() => setSettingsOpen((v) => !v)}
+              >
+                Settings
+                {settingsOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+              </Button>
+              {settingsOpen && (
+                <div className="border-t border-zinc-800 p-3">
+                  <StakeControl stake={stake} minStake={config.minStake} maxStake={config.maxStake} setStake={setStake} />
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-lg border border-zinc-800">
+              <Button
+                variant="ghost"
+                className="flex w-full items-center justify-between rounded-b-none rounded-t-lg px-3 py-2 text-sm text-zinc-200"
+                onClick={() => setPoolsOpen((v) => !v)}
+              >
+                Pools
+                {poolsOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+              </Button>
+              {poolsOpen && (
+                <div className="border-t border-zinc-800 p-3">
+                  <SocialPoolsPanel
+                    history={history}
+                    currentUserAddress={wallet?.address}
+                    onSelectPoolPlay={(pool) => {
+                      setActivePool(pool);
+                      setActivePlayMode("pool");
+                      pushToast(`Pool mode active: ${pool.title}`, "neutral");
+                    }}
+                    onActivePoolChange={(pool) => {
+                      setActivePool(pool);
+                      if (!pool) {
+                        setActivePlayMode("demo");
+                      }
+                    }}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
