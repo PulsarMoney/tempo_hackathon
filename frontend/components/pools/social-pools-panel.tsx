@@ -297,21 +297,28 @@ export function SocialPoolsPanel({ onActivePoolChange, onSelectPoolPlay, history
   const handleEndPool = async () => {
     if (!pool) return;
     const token = await getAccessToken();
-    if (!token) return;
+    if (!token) {
+      setMessage("Auth token unavailable. Please re-login and try again.");
+      return;
+    }
 
-    if (pool.status === "open") {
+    // Always refresh from backend first so auto-close sync is applied before we decide.
+    const fresh = await getPool(token, pool.id);
+    syncPool(fresh);
+
+    if (fresh.status === "open") {
       setMessage("Pool is still open. Wait until close time to end it.");
       return;
     }
 
-    if (pool.status === "paid") {
+    if (fresh.status === "paid") {
       setMessage("Pool is already paid.");
       return;
     }
 
     setStatus("confirming");
 
-    let latest = pool;
+    let latest = fresh;
     if (latest.status === "closed") {
       await resolvePool(token, pool.id, {
         outcome: { strategy: "trade_top_pnl" },

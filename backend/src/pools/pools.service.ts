@@ -351,7 +351,10 @@ export class PoolsService {
       .sort((a, b) => {
         const aPnl = a.pnl ? Number(a.pnl) : -Infinity;
         const bPnl = b.pnl ? Number(b.pnl) : -Infinity;
-        return bPnl - aPnl;
+        if (bPnl !== aPnl) {
+          return bPnl - aPnl;
+        }
+        return a.participantId.localeCompare(b.participantId);
       });
 
     let currentRank = 0;
@@ -488,10 +491,14 @@ export class PoolsService {
       return [];
     }
 
-    scoredJoined.sort((a, b) => b.pnl - a.pnl);
-    const topPnl = scoredJoined[0].pnl;
+    scoredJoined.sort((a, b) => {
+      if (b.pnl !== a.pnl) {
+        return b.pnl - a.pnl;
+      }
+      return a.privyDid.localeCompare(b.privyDid);
+    });
 
-    return scoredJoined.filter((entry) => entry.pnl === topPnl).map((entry) => entry.privyDid);
+    return [scoredJoined[0].privyDid];
   }
 
   private computeRankingSnapshot(
@@ -517,7 +524,11 @@ export class PoolsService {
         if (!a.submitted && !b.submitted) return 0;
         if (!a.submitted) return 1;
         if (!b.submitted) return -1;
-        return Number(b.pnl) - Number(a.pnl);
+        const pnlDelta = Number(b.pnl) - Number(a.pnl);
+        if (pnlDelta !== 0) {
+          return pnlDelta;
+        }
+        return a.participantId.localeCompare(b.participantId);
       });
 
     let currentRank = 0;

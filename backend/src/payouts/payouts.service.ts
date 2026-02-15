@@ -63,26 +63,30 @@ export class PayoutsService {
     const winnerPrivyDids = Array.isArray(outcome.outcomeJson.winnerPrivyDids)
       ? (outcome.outcomeJson.winnerPrivyDids as string[])
       : [];
+    const rankingSnapshot = Array.isArray(outcome.outcomeJson.rankingSnapshot)
+      ? (outcome.outcomeJson.rankingSnapshot as Array<{ participantId?: string; rank?: number | null }>)
+      : [];
 
-    const winners =
-      winnerPrivyDids.length > 0
-        ? joined.filter((participant) => participant.user?.privyDid && winnerPrivyDids.includes(participant.user.privyDid))
-        : joined;
+    let winner = rankingSnapshot
+      .filter((row) => row.rank === 1 && row.participantId)
+      .map((row) => joined.find((participant) => participant.id === row.participantId))
+      .find((row) => Boolean(row));
 
-    if (winners.length === 0) {
-      throw new BadRequestException('No payout winners from outcome');
+    if (!winner && winnerPrivyDids.length > 0) {
+      const winnerDid = winnerPrivyDids[0];
+      winner = joined.find((participant) => participant.user?.privyDid === winnerDid);
+    }
+
+    if (!winner) {
+      throw new BadRequestException('No payout winner from outcome');
     }
 
     const executionId = uuidv4();
     const poolTotal = Number(pool.entryAmount) * joined.length;
-    const payoutEach = (poolTotal / winners.length).toFixed(6);
+    const payoutAmount = poolTotal.toFixed(6);
 
     const createdRows: PoolPayoutEntity[] = [];
-    for (const winner of winners) {
-      if (!winner.walletAddress) {
-        continue;
-      }
-
+    if (winner.walletAddress) {
       const memoReference = this.chainService.makePayoutReference(pool.id, winner.id);
       const memoHex = this.chainService.memoHex(memoReference);
 
@@ -91,7 +95,7 @@ export class PayoutsService {
           poolId: pool.id,
           participantId: winner.id,
           executionId,
-          amount: payoutEach,
+          amount: payoutAmount,
           memoHex,
           memoReference,
           status: 'pending',
@@ -105,8 +109,7 @@ export class PayoutsService {
     const failures: Array<{ payoutId: string; reason: string }> = [];
 
     for (const payout of createdRows) {
-      const participant = winners.find((winner) => winner.id === payout.participantId);
-      if (!participant?.walletAddress) {
+      if (!winner.walletAddress) {
         payout.status = 'failed';
         payout.error = 'missing_wallet_address';
         await this.payoutsRepo.save(payout);
@@ -116,7 +119,7 @@ export class PayoutsService {
 
       try {
         const sent = await this.chainService.executePayout({
-          to: participant.walletAddress as `0x${string}`,
+          to: winner.walletAddress as `0x${string}`,
           amount: payout.amount,
           memoHex: payout.memoHex as `0x${string}`,
         });
