@@ -96,14 +96,14 @@ export function BetGrid({
     >
       {cells.map((cell) => {
         const base =
-          "relative flex h-full w-full items-center justify-center rounded-sm border border-zinc-800/65 text-[12px] font-semibold md:text-[13px]";
+          "relative flex h-full w-full items-center justify-center rounded-sm border border-slate-800/60 text-[12px] font-semibold transition-colors duration-200 md:text-[13px]";
         const isHitCell = hitEffectActive && hitEffectCellIds.includes(cell.key);
 
         if (cell.bet) {
           return (
             <div
               key={cell.key}
-              className={`${base} pointer-events-none z-10 border-primary/75 bg-primary/30 text-blue-50 shadow-pulse backdrop-blur-[1px]`}
+              className={`${base} pointer-events-none z-10 border-primary/65 bg-primary/24 text-blue-50 shadow-pulse backdrop-blur-[1px]`}
               style={{ gridColumn: `${cell.colOffset + 1} / span 1`, gridRow: `${cell.row + 1} / span 1` }}
             >
               {isHitCell && <div className="hit-burst-ring absolute inset-[-4px] rounded-sm" />}
@@ -135,7 +135,7 @@ export function BetGrid({
         return (
           <button
             key={cell.key}
-            className={`${base} pointer-events-auto bg-zinc-950/35 text-zinc-300 transition-all hover:border-primary/55 hover:bg-zinc-900/45 hover:text-blue-100`}
+            className={`${base} pointer-events-auto bg-slate-950/30 text-zinc-300 hover:border-primary/45 hover:bg-slate-900/50 hover:text-blue-100`}
             style={{ gridColumn: `${cell.colOffset + 1} / span 1`, gridRow: `${cell.row + 1} / span 1` }}
             onClick={() => onPlaceBet(cell.col, cell.row, cell.multiplier as number)}
             aria-label={`Place bet on column ${cell.col} row ${cell.row}`}

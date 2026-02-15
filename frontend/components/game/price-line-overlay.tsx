@@ -48,8 +48,12 @@ export function PriceLineOverlay({
       shapeRendering="geometricPrecision"
     >
       <defs>
+        <linearGradient id="priceLineStroke" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#8EAFFF" stopOpacity="0.85" />
+          <stop offset="100%" stopColor="#336CFF" stopOpacity="1" />
+        </linearGradient>
         <filter id="lineGlow">
-          <feGaussianBlur stdDeviation="1.1" result="blur" />
+          <feGaussianBlur stdDeviation="0.8" result="blur" />
           <feMerge>
             <feMergeNode in="blur" />
             <feMergeNode in="SourceGraphic" />
@@ -59,22 +63,22 @@ export function PriceLineOverlay({
       <polyline
         points={polyline}
         fill="none"
-        stroke="#7aa0ff"
-        strokeWidth="1.2"
-        strokeOpacity="0.45"
+        stroke="#9DB8FF"
+        strokeWidth="0.9"
+        strokeOpacity="0.35"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <polyline
         points={polyline}
         fill="none"
-        stroke="#336CFF"
-        strokeWidth="1.7"
+        stroke="url(#priceLineStroke)"
+        strokeWidth="1.35"
         strokeLinecap="round"
         strokeLinejoin="round"
         filter="url(#lineGlow)"
       />
-      <circle cx={currentX} cy={currentY} r="4.4" fill="#336CFF" className="animate-pulse" filter="url(#lineGlow)" />
+      <circle cx={currentX} cy={currentY} r="3.8" fill="#336CFF" className="animate-pulse" filter="url(#lineGlow)" />
     </svg>
   );
 }

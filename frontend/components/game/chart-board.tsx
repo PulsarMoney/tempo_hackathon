@@ -8,7 +8,6 @@ import { getColumnTicks } from "@/lib/game/constants";
 import { getCurrentColumnProgress, getFutureGrid } from "@/lib/game/selectors";
 import { rowBand } from "@/lib/game/odds";
 import { useGameStore } from "@/store/use-game-store";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TopBar } from "@/components/game/top-bar";
@@ -138,114 +137,110 @@ export function ChartBoard() {
   };
 
   return (
-    <div className="mx-auto flex h-[calc(100vh-2rem)] w-full max-w-[1600px] flex-col gap-3">
+    <div className="mx-auto flex h-[calc(100vh-2rem)] w-full max-w-[1680px] flex-col gap-3 px-2 pb-2">
       <TopBar currentPrice={currentPrice} balance={balance} />
 
       <div className="relative min-h-0 flex-1">
-        <Card className="h-full overflow-hidden">
-          <CardContent className="h-full p-2 md:p-3">
-            <div className="relative h-full min-h-[560px] rounded-lg border border-zinc-800 bg-[radial-gradient(circle_at_20%_20%,rgba(51,108,255,0.15),transparent_55%),linear-gradient(180deg,#111827_0%,#090e19_100%)]">
-              <Button
-                variant="outline"
-                size="sm"
-                className={`absolute top-2 z-50 border-zinc-700 bg-zinc-900/90 text-zinc-200 transition-all ${
-                  panelOpen ? "right-[350px]" : "right-2"
-                }`}
-                onClick={() => setPanelOpen((v) => !v)}
-              >
-                {panelOpen ? <PanelRightClose className="mr-1 h-4 w-4" /> : <PanelRightOpen className="mr-1 h-4 w-4" />}
-                {panelOpen ? "Hide Settings" : "Settings"}
-              </Button>
+        <div className="panel-shell h-full overflow-hidden p-2 md:p-3">
+          <div className="relative h-full min-h-[560px] rounded-xl border border-border/70 bg-[radial-gradient(circle_at_18%_16%,rgba(51,108,255,0.16),transparent_48%),radial-gradient(circle_at_82%_10%,rgba(130,162,255,0.08),transparent_34%),linear-gradient(180deg,#11192a_0%,#0a111f_100%)]">
+            <div className="pointer-events-none absolute inset-0 rounded-xl shadow-[inset_0_0_120px_rgba(7,10,17,0.45)]" />
+            <Button
+              variant="outline"
+              size="sm"
+              className={`absolute top-2 z-50 border-zinc-700/80 bg-zinc-950/90 text-zinc-100 transition-all duration-200 ${
+                panelOpen ? "right-[352px]" : "right-2"
+              }`}
+              onClick={() => setPanelOpen((v) => !v)}
+            >
+              {panelOpen ? <PanelRightClose className="mr-1 h-4 w-4" /> : <PanelRightOpen className="mr-1 h-4 w-4" />}
+              {panelOpen ? "Hide" : "Settings"}
+            </Button>
 
-              <div
-                className="absolute inset-y-0 left-0 right-[62px] grid"
-                style={{
-                  gridTemplateColumns: `repeat(${totalColumnsVisible}, minmax(0, 1fr))`,
-                  gridTemplateRows: `repeat(${config.rows}, minmax(0, 1fr))`,
-                  transform: `translateX(-${gridShiftPercent}%)`,
-                }}
-              >
-                {Array.from({ length: totalColumnsVisible * config.rows }, (_, i) => (
-                  <div key={i} className="border-[0.5px] border-zinc-900/80" />
-                ))}
-              </div>
+            <div
+              className="absolute inset-y-0 left-0 right-[62px] grid"
+              style={{
+                gridTemplateColumns: `repeat(${totalColumnsVisible}, minmax(0, 1fr))`,
+                gridTemplateRows: `repeat(${config.rows}, minmax(0, 1fr))`,
+                transform: `translateX(-${gridShiftPercent}%)`,
+              }}
+            >
+              {Array.from({ length: totalColumnsVisible * config.rows }, (_, i) => (
+                <div key={i} className="border-[0.5px] border-slate-900/70" />
+              ))}
+            </div>
 
-              <div className="absolute inset-y-0 left-0 w-[calc((100%-62px)/2)] border-r border-zinc-800/80 bg-zinc-950/22" />
-              <div className="pointer-events-none absolute inset-y-0 left-[calc((100%-62px)/2)] z-20 w-px bg-primary/55" />
+            <div className="absolute inset-y-0 left-0 w-[calc((100%-62px)/2)] border-r border-slate-700/55 bg-slate-950/18" />
+            <div className="pointer-events-none absolute inset-y-0 left-[calc((100%-62px)/2)] z-20 w-px bg-primary/50" />
 
-              <PriceLineOverlay
-                points={priceSeries}
-                minPrice={config.minPrice}
-                maxPrice={config.maxPrice}
-                windowStartTick={windowStartTick}
-                windowEndTick={windowEndTick}
-                currentTick={currentTick}
-              />
-              <BetGrid
-                columns={futureGrid}
-                rows={config.rows}
-                totalColumnsVisible={totalColumnsVisible}
-                pastColumnsVisible={pastColumnsVisible}
-                currentColumn={currentColumn}
-                progress={progress}
-                betsOpen={betsOpen}
-                hitEffectCellIds={ui.hitEffectCellIds}
-                hitEffectActive={currentTick - ui.hitEffectTick <= 8}
-                onPlaceBet={onPlaceBet}
-              />
+            <PriceLineOverlay
+              points={priceSeries}
+              minPrice={config.minPrice}
+              maxPrice={config.maxPrice}
+              windowStartTick={windowStartTick}
+              windowEndTick={windowEndTick}
+              currentTick={currentTick}
+            />
+            <BetGrid
+              columns={futureGrid}
+              rows={config.rows}
+              totalColumnsVisible={totalColumnsVisible}
+              pastColumnsVisible={pastColumnsVisible}
+              currentColumn={currentColumn}
+              progress={progress}
+              betsOpen={betsOpen}
+              hitEffectCellIds={ui.hitEffectCellIds}
+              hitEffectActive={currentTick - ui.hitEffectTick <= 8}
+              onPlaceBet={onPlaceBet}
+            />
 
-              <div className="absolute inset-y-0 right-0 z-20 flex w-[62px] flex-col justify-between border-l border-zinc-800 bg-zinc-950/90 py-1">
-                {yAxisLabels.map((label, index) => (
-                  <span key={`${label}-${index}`} className="px-1 text-right text-[11px] text-zinc-500">
-                    {label}
-                  </span>
-                ))}
-              </div>
+            <div className="absolute inset-y-0 right-0 z-20 flex w-[62px] flex-col justify-between border-l border-slate-700/70 bg-slate-950/88 py-1">
+              {yAxisLabels.map((label, index) => (
+                <span key={`${label}-${index}`} className="px-1 text-right text-[11px] text-zinc-500">
+                  {label}
+                </span>
+              ))}
+            </div>
 
-              <div className="pointer-events-none absolute left-2 top-2 z-30 space-y-2">
-                {toasts.map((toast) => (
-                  <div
-                    key={toast.id}
-                    className={`rounded-md border bg-zinc-950/90 px-3 py-1.5 text-sm shadow-lg ${
-                      toast.tone === "win"
-                        ? "border-success/70 text-green-200"
-                        : toast.tone === "warn"
-                          ? "border-warning/60 text-amber-200"
-                          : "border-zinc-700 text-zinc-200"
-                    }`}
-                  >
-                    {toast.text}
-                  </div>
-                ))}
-              </div>
-
-              <div className="pointer-events-none absolute bottom-2 left-2 z-30">
-                <div className="rounded-md border border-zinc-700 bg-zinc-950/90 px-2 py-1 text-xs text-zinc-200">
-                  {activePlayMode === "pool" && activePool
-                    ? `POOL PLAY · ${activePool.title} (${activePool.id.slice(0, 6)})`
-                    : "DEMO PLAY · Results do not affect pool payouts"}
+            <div className="pointer-events-none absolute left-3 top-3 z-30 space-y-2">
+              {toasts.map((toast) => (
+                <div
+                  key={toast.id}
+                  className={`rounded-md border bg-zinc-950/90 px-3 py-1.5 text-sm shadow-lg transition-opacity ${
+                    toast.tone === "win"
+                      ? "border-success/70 text-green-200"
+                      : toast.tone === "warn"
+                        ? "border-warning/60 text-amber-200"
+                        : "border-zinc-700 text-zinc-200"
+                  }`}
+                >
+                  {toast.text}
                 </div>
+              ))}
+            </div>
+
+            <div className="pointer-events-none absolute bottom-3 left-3 z-30">
+              <div className="rounded-md border border-border/80 bg-zinc-950/85 px-2.5 py-1 text-[11px] text-zinc-200">
+                {activePlayMode === "pool" && activePool
+                  ? `Pool: ${activePool.title}`
+                  : "Demo mode: trades are not counted in pool standings"}
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         <div
-          className={`absolute bottom-2 right-2 top-2 z-40 w-[330px] overflow-auto rounded-xl border border-zinc-800 bg-zinc-950/95 p-3 shadow-2xl transition-transform duration-300 ${
+          className={`panel-shell absolute bottom-2 right-2 top-2 z-40 w-[338px] overflow-auto p-3 shadow-2xl transition-transform duration-300 ${
             panelOpen ? "pointer-events-auto translate-x-0" : "pointer-events-none translate-x-[120%]"
           }`}
         >
           <Tabs value={sidebarTab} onValueChange={(value) => setSidebarTab(value as "settings" | "pools")} className="space-y-3">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-2 bg-black/25">
               <TabsTrigger value="settings">Trading</TabsTrigger>
               <TabsTrigger value="pools">Pools</TabsTrigger>
             </TabsList>
 
             <TabsContent value="settings" forceMount className={cn("m-0 space-y-3", sidebarTab !== "settings" && "hidden")}>
-              <div className="rounded-lg border border-zinc-800 p-3">
-                <p className="mb-2 text-sm font-medium text-zinc-200">Trading</p>
-                <StakeControl stake={stake} minStake={config.minStake} maxStake={config.maxStake} setStake={setStake} />
-              </div>
+              <StakeControl stake={stake} minStake={config.minStake} maxStake={config.maxStake} setStake={setStake} />
               <HistoryPanel history={history} openCount={betsOpen.length} activePoolId={activePool?.id ?? null} />
             </TabsContent>
 
