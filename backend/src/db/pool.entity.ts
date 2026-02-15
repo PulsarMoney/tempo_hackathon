@@ -14,6 +14,7 @@ import { PoolParticipantEntity } from './pool-participant.entity';
 import { PoolOutcomeEntity } from './pool-outcome.entity';
 import { PoolPayoutEntity } from './pool-payout.entity';
 import { PoolEventEntity } from './pool-event.entity';
+import { PoolScoreEntity } from './pool-score.entity';
 
 export type PoolStatus = 'open' | 'closed' | 'resolved' | 'paid';
 
@@ -65,4 +66,7 @@ export class PoolEntity {
 
   @OneToMany(() => PoolEventEntity, (event) => event.pool)
   events!: PoolEventEntity[];
+
+  @OneToMany(() => PoolScoreEntity, (score) => score.pool)
+  scores!: PoolScoreEntity[];
 }

@@ -7,6 +7,7 @@ import { PoolParticipantEntity } from './pool-participant.entity';
 import { PoolOutcomeEntity } from './pool-outcome.entity';
 import { PoolPayoutEntity } from './pool-payout.entity';
 import { PoolEventEntity } from './pool-event.entity';
+import { PoolScoreEntity } from './pool-score.entity';
 
 export const dbEntities = [
   UserEntity,
@@ -17,6 +18,7 @@ export const dbEntities = [
   PoolOutcomeEntity,
   PoolPayoutEntity,
   PoolEventEntity,
+  PoolScoreEntity,
 ];
 
 export {
@@ -28,6 +30,7 @@ export {
   PoolOutcomeEntity,
   PoolPayoutEntity,
   PoolEventEntity,
+  PoolScoreEntity,
 };
 
 export type { PoolStatus };

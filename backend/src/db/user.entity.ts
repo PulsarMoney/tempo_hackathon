@@ -10,6 +10,7 @@ import {
 import { UserAccountEntity } from './user-account.entity';
 import { UserRoleEntity } from './user-role.entity';
 import { PoolEntity } from './pool.entity';
+import { PoolScoreEntity } from './pool-score.entity';
 
 @Entity('users')
 @Unique(['privyDid'])
@@ -37,4 +38,7 @@ export class UserEntity {
 
   @OneToMany(() => PoolEntity, (pool) => pool.creator)
   createdPools!: PoolEntity[];
+
+  @OneToMany(() => PoolScoreEntity, (score) => score.user)
+  poolScores!: PoolScoreEntity[];
 }

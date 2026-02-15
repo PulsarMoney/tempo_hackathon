@@ -1,7 +1,9 @@
 import {
   IsArray,
+  IsInt,
   IsDateString,
   IsEnum,
+  IsNumberString,
   IsObject,
   IsOptional,
   IsString,
@@ -54,4 +56,21 @@ export class ResolvePoolDto {
   @IsArray()
   @IsString({ each: true })
   winnerPrivyDids?: string[];
+}
+
+export class SubmitPoolScoreDto {
+  @IsNumberString()
+  pnl!: string;
+
+  @IsNumberString()
+  totalStake!: string;
+
+  @IsNumberString()
+  totalPayout!: string;
+
+  @IsInt()
+  wins!: number;
+
+  @IsInt()
+  losses!: number;
 }
