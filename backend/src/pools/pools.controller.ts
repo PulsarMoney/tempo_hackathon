@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { PoolsService } from './pools.service';
-import { CreatePoolDto, JoinPoolDto, ResolvePoolDto } from './dto';
+import { CreatePoolDto, JoinPoolDto, ResolvePoolDto, SubmitPoolScoreDto } from './dto';
 import { AuthGuard } from '../auth/auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../common/interfaces/authenticated-user';
@@ -15,9 +15,14 @@ export class PoolsController {
     return this.poolsService.createPool(currentUser, body);
   }
 
+  @Get()
+  async listMyPools(@CurrentUser() currentUser: AuthenticatedUser) {
+    return this.poolsService.listMyPools(currentUser);
+  }
+
   @Get(':poolId')
-  async getPool(@Param('poolId') poolId: string) {
-    return this.poolsService.getPool(poolId);
+  async getPool(@Param('poolId') poolId: string, @CurrentUser() currentUser: AuthenticatedUser) {
+    return this.poolsService.getPool(poolId, currentUser);
   }
 
   @Post(':poolId/join-intent')
@@ -41,5 +46,19 @@ export class PoolsController {
     @Body() body: ResolvePoolDto,
   ) {
     return this.poolsService.resolvePool(poolId, currentUser, body);
+  }
+
+  @Post(':poolId/score')
+  async submitScore(
+    @Param('poolId') poolId: string,
+    @CurrentUser() currentUser: AuthenticatedUser,
+    @Body() body: SubmitPoolScoreDto,
+  ) {
+    return this.poolsService.submitScore(poolId, currentUser, body);
+  }
+
+  @Get(':poolId/leaderboard')
+  async getLeaderboard(@Param('poolId') poolId: string, @CurrentUser() currentUser: AuthenticatedUser) {
+    return this.poolsService.getLeaderboard(poolId, currentUser);
   }
 }
