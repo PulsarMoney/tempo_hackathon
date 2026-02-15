@@ -17,7 +17,6 @@ import { StakeControl } from "@/components/game/stake-control";
 import { GameControls } from "@/components/game/game-controls";
 import { HistoryPanel } from "@/components/game/history-panel";
 import { SocialPoolsPanel } from "@/components/pools/social-pools-panel";
-import { PoolTrackerPanel } from "@/components/pools/pool-tracker-panel";
 import type { PoolSummary } from "@/lib/pools/api";
 
 export function ChartBoard() {
@@ -240,17 +239,12 @@ export function ChartBoard() {
               resetGame={resetGame}
               toggleDemoSeed={toggleDemoSeed}
             />
-            <PoolTrackerPanel
-              activePool={activePool}
-              playMode={activePlayMode}
-              activePoolId={activePool?.id ?? null}
-              history={history}
-              currentUserAddress={wallet?.address}
-            />
             <HistoryPanel history={history} openCount={betsOpen.length} activePoolId={activePool?.id ?? null} />
             <SocialPoolsPanel
               activePlayMode={activePlayMode}
               activePoolId={activePool?.id ?? null}
+              history={history}
+              currentUserAddress={wallet?.address}
               onSelectPoolPlay={(pool) => {
                 setActivePool(pool);
                 setActivePlayMode("pool");

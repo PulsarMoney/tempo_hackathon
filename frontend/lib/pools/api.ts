@@ -2,12 +2,56 @@ export type PoolSummary = {
   id: string;
   title: string;
   status: string;
+  creatorUserId?: string;
   entryAmount: string;
   tokenAddress: string;
   closeAt: string;
-  participants?: Array<{ id: string; joinStatus: string; walletAddress: string | null; joinTxHash: string | null }>;
+  resolvedAt?: string | null;
+  participants?: Array<{
+    id: string;
+    userId?: string | null;
+    joinStatus: string;
+    walletAddress: string | null;
+    joinTxHash: string | null;
+  }>;
   payouts?: Array<{ id: string; participantId: string; amount: string; txHash: string | null; status: string }>;
-  events?: Array<{ id: string; eventType: string; createdAt: string }>;
+  outcomes?: Array<{ id: string; outcomeJson?: Record<string, unknown> }>;
+  events?: Array<{ id: string; eventType: string; createdAt: string; payloadJson?: Record<string, unknown> | null }>;
+  scores?: Array<{
+    id: string;
+    userId: string;
+    pnl: string;
+    totalStake: string;
+    totalPayout: string;
+    wins: number;
+    losses: number;
+    submittedAt: string;
+  }>;
+  myScoreSubmitted?: boolean;
+};
+
+export type MyPoolSummary = {
+  id: string;
+  title: string;
+  status: "open" | "closed" | "resolved" | "paid";
+  entryAmount: string;
+  tokenAddress: string;
+  closeAt: string;
+  creatorUserId: string;
+  participantCount: number;
+};
+
+export type LeaderboardRow = {
+  participantId: string;
+  userId: string | null;
+  walletAddress: string | null;
+  submitted: boolean;
+  pnl: string | null;
+  wins: number;
+  losses: number;
+  totalStake: string | null;
+  totalPayout: string | null;
+  rank: number | null;
 };
 
 const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:4000';
@@ -50,6 +94,10 @@ export async function getPool(token: string, poolId: string) {
   return request<PoolSummary>(`/pools/${poolId}`, token);
 }
 
+export async function listMyPools(token: string) {
+  return request<{ pools: MyPoolSummary[] }>('/pools', token);
+}
+
 export async function createJoinIntent(token: string, poolId: string) {
   return request<{
     participantId: string;
@@ -80,6 +128,27 @@ export async function resolvePool(
     method: 'POST',
     body: JSON.stringify(body),
   });
+}
+
+export async function submitPoolScore(
+  token: string,
+  poolId: string,
+  body: {
+    pnl: string;
+    totalStake: string;
+    totalPayout: string;
+    wins: number;
+    losses: number;
+  },
+) {
+  return request<{ accepted: true; scoreId: string }>(`/pools/${poolId}/score`, token, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getPoolLeaderboard(token: string, poolId: string) {
+  return request<{ poolId: string; status: string; leaderboard: LeaderboardRow[] }>(`/pools/${poolId}/leaderboard`, token);
 }
 
 export async function executePayout(token: string, poolId: string) {
