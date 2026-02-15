@@ -89,6 +89,7 @@ export function SocialPoolsPanel({ onActivePoolChange, onSelectPoolPlay, history
   const [message, setMessage] = useState<string>("");
   const [showWinnerModal, setShowWinnerModal] = useState(false);
   const hydrated = useRef(false);
+  const lastAutoScoreKey = useRef<string>("");
 
   const canUseWallet = authenticated && wallet?.type === "ethereum";
 
@@ -269,7 +270,7 @@ export function SocialPoolsPanel({ onActivePoolChange, onSelectPoolPlay, history
     await refreshMyPools();
   };
 
-  const handleSubmitScore = async () => {
+  const handleSubmitScore = useCallback(async () => {
     if (!pool) return;
     const token = await getAccessToken();
     if (!token) return;
@@ -282,9 +283,36 @@ export function SocialPoolsPanel({ onActivePoolChange, onSelectPoolPlay, history
       losses: scorePreview.losses,
     });
 
-    setMessage("Score submitted.");
     await loadPool(pool.id);
-  };
+  }, [getAccessToken, loadPool, pool, scorePreview.losses, scorePreview.pnl, scorePreview.totalPayout, scorePreview.totalStake, scorePreview.wins]);
+
+  useEffect(() => {
+    if (!pool || !joinedByMe) return;
+    if (pool.status !== "closed" && pool.status !== "resolved") return;
+
+    const key = [
+      pool.id,
+      scorePreview.pnl.toFixed(8),
+      scorePreview.totalStake.toFixed(8),
+      scorePreview.totalPayout.toFixed(8),
+      scorePreview.wins,
+      scorePreview.losses,
+    ].join(":");
+
+    if (lastAutoScoreKey.current === key) return;
+    lastAutoScoreKey.current = key;
+
+    void handleSubmitScore();
+  }, [
+    handleSubmitScore,
+    joinedByMe,
+    pool,
+    scorePreview.losses,
+    scorePreview.pnl,
+    scorePreview.totalPayout,
+    scorePreview.totalStake,
+    scorePreview.wins,
+  ]);
 
   const handleEndPool = async () => {
     if (!pool) return;
@@ -421,12 +449,6 @@ export function SocialPoolsPanel({ onActivePoolChange, onSelectPoolPlay, history
                     <Badge variant="default">All your trades now count for this pool</Badge>
                   )}
 
-                  {joinedByMe && (pool.status === "closed" || pool.status === "resolved") && !pool.myScoreSubmitted && (
-                    <Button size="sm" variant="outline" onClick={() => void handleSubmitScore()}>
-                      Submit My Score
-                    </Button>
-                  )}
-
                   {canEndPool && (
                     <Button size="sm" variant="outline" onClick={() => void handleEndPool()}>
                       End Pool
@@ -460,11 +482,8 @@ export function SocialPoolsPanel({ onActivePoolChange, onSelectPoolPlay, history
                 <p className="mb-2 text-sm font-medium text-zinc-200">Leaderboard</p>
                 {leaderboard.length === 0 && <p className="text-zinc-500">No scores submitted yet.</p>}
                 {leaderboard.length > 0 && (
-                  <div className="mb-1 grid grid-cols-[30px_1fr_64px_64px_72px] gap-2 px-2 text-[10px] uppercase tracking-wide text-zinc-500">
-                    <span>Rank</span>
-                    <span>Trader</span>
-                    <span>W/L</span>
-                    <span>Status</span>
+                  <div className="mb-1 grid grid-cols-[1fr_72px] gap-2 px-2 text-[10px] uppercase tracking-wide text-zinc-500">
+                    <span>Address</span>
                     <span>Net PnL</span>
                   </div>
                 )}
@@ -478,16 +497,11 @@ export function SocialPoolsPanel({ onActivePoolChange, onSelectPoolPlay, history
                       <div
                         key={row.participantId}
                         className={cn(
-                          "grid grid-cols-[30px_1fr_64px_64px_72px] items-center gap-2 rounded border border-zinc-800 bg-zinc-950/60 px-2 py-1",
+                          "grid grid-cols-[1fr_72px] items-center gap-2 rounded border border-zinc-800 bg-zinc-950/60 px-2 py-1",
                           mine && "border-primary/40 bg-primary/10",
                         )}
                       >
-                        <span className="text-zinc-400">{row.rank ?? "-"}</span>
                         <span className="text-zinc-200">{shortAddress(row.walletAddress)}{mine ? " (you)" : ""}</span>
-                        <span className="text-zinc-400">
-                          {row.wins}/{row.losses}
-                        </span>
-                        <span className="text-zinc-400">{row.submitted ? "Submitted" : "Pending"}</span>
                         <span className={row.pnl && Number(row.pnl) >= 0 ? "text-success" : "text-[#EF4444]"}>
                           {row.pnl ? `${Number(row.pnl) >= 0 ? "+" : ""}${Number(row.pnl).toFixed(2)}` : "--"}
                         </span>
