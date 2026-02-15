@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { PoolsService } from './pools.service';
-import { CreatePoolDto, JoinPoolDto, ResolvePoolDto, SubmitPoolScoreDto } from './dto';
+import { CreatePoolDto, JoinPoolDto, ResolvePoolDto, SubmitPoolTradesDto } from './dto';
 import { AuthGuard } from '../auth/auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../common/interfaces/authenticated-user';
@@ -48,13 +48,13 @@ export class PoolsController {
     return this.poolsService.resolvePool(poolId, currentUser, body);
   }
 
-  @Post(':poolId/score')
-  async submitScore(
+  @Post(':poolId/trades')
+  async submitTrades(
     @Param('poolId') poolId: string,
     @CurrentUser() currentUser: AuthenticatedUser,
-    @Body() body: SubmitPoolScoreDto,
+    @Body() body: SubmitPoolTradesDto,
   ) {
-    return this.poolsService.submitScore(poolId, currentUser, body);
+    return this.poolsService.submitTrades(poolId, currentUser, body);
   }
 
   @Get(':poolId/leaderboard')

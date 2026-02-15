@@ -13,11 +13,11 @@ import {
   PoolEventEntity,
   PoolOutcomeEntity,
   PoolParticipantEntity,
-  PoolScoreEntity,
+  PoolTradeEventEntity,
   UserEntity,
 } from '../db/entities';
 import { ChainService } from '../chain/chain.service';
-import { CreatePoolDto, JoinPoolDto, ResolvePoolDto, SubmitPoolScoreDto } from './dto';
+import { CreatePoolDto, JoinPoolDto, PoolTradeEventDto, ResolvePoolDto, SubmitPoolTradesDto } from './dto';
 import { AuthenticatedUser } from '../common/interfaces/authenticated-user';
 
 @Injectable()
@@ -31,8 +31,8 @@ export class PoolsService {
     private readonly outcomesRepo: Repository<PoolOutcomeEntity>,
     @InjectRepository(PoolEventEntity)
     private readonly eventsRepo: Repository<PoolEventEntity>,
-    @InjectRepository(PoolScoreEntity)
-    private readonly scoresRepo: Repository<PoolScoreEntity>,
+    @InjectRepository(PoolTradeEventEntity)
+    private readonly tradeEventsRepo: Repository<PoolTradeEventEntity>,
     @InjectRepository(UserEntity)
     private readonly usersRepo: Repository<UserEntity>,
     private readonly chainService: ChainService,
@@ -118,7 +118,7 @@ export class PoolsService {
         payouts: true,
         outcomes: true,
         events: true,
-        scores: { user: true },
+        tradeEvents: true,
       },
     });
 
@@ -141,17 +141,6 @@ export class PoolsService {
       payouts: pool.payouts,
       outcomes: pool.outcomes,
       events: pool.events,
-      scores: pool.scores.map((score) => ({
-        id: score.id,
-        userId: score.userId,
-        pnl: score.pnl,
-        totalStake: score.totalStake,
-        totalPayout: score.totalPayout,
-        wins: score.wins,
-        losses: score.losses,
-        submittedAt: score.submittedAt,
-      })),
-      myScoreSubmitted: pool.scores.some((score) => score.userId === currentUser.userId),
     };
   }
 
@@ -262,7 +251,7 @@ export class PoolsService {
     return { accepted: true, participantId: participant.id };
   }
 
-  async submitScore(poolId: string, currentUser: AuthenticatedUser, dto: SubmitPoolScoreDto) {
+  async submitTrades(poolId: string, currentUser: AuthenticatedUser, dto: SubmitPoolTradesDto) {
     const pool = await this.poolsRepo.findOne({ where: { id: poolId } });
     if (!pool) {
       throw new NotFoundException('Pool not found');
@@ -270,50 +259,61 @@ export class PoolsService {
 
     await this.syncPoolClosedState(pool, currentUser.userId);
 
-    if (pool.status !== 'closed' && pool.status !== 'resolved') {
-      throw new BadRequestException('Scores can be submitted only when pool is closed or resolved');
-    }
-
     const participant = await this.participantsRepo.findOne({
       where: { poolId, userId: currentUser.userId },
     });
 
     if (!participant || participant.joinStatus !== 'joined') {
-      throw new ForbiddenException('Only joined participants can submit scores');
+      throw new ForbiddenException('Only joined participants can submit pool trades');
     }
 
-    const existing = await this.scoresRepo.findOne({ where: { poolId, userId: currentUser.userId } });
+    if (!Array.isArray(dto.trades) || dto.trades.length === 0) {
+      return { accepted: true, inserted: 0 };
+    }
 
-    const saved = await this.scoresRepo.save(
-      this.scoresRepo.create({
-        id: existing?.id,
-        poolId,
-        userId: currentUser.userId,
-        pnl: dto.pnl,
-        totalStake: dto.totalStake,
-        totalPayout: dto.totalPayout,
-        wins: dto.wins,
-        losses: dto.losses,
-      }),
-    );
-
-    await this.eventsRepo.save(
-      this.eventsRepo.create({
-        poolId,
-        eventType: 'score.submitted',
-        actorUserId: currentUser.userId,
-        payloadJson: {
-          scoreId: saved.id,
-          pnl: saved.pnl,
-          wins: saved.wins,
-          losses: saved.losses,
-          totalStake: saved.totalStake,
-          totalPayout: saved.totalPayout,
+    let inserted = 0;
+    for (const trade of dto.trades) {
+      const normalized = this.normalizeTrade(trade);
+      const existing = await this.tradeEventsRepo.findOne({
+        where: {
+          poolId,
+          betId: normalized.betId,
         },
-      }),
-    );
+      });
 
-    return { accepted: true, scoreId: saved.id };
+      if (existing) {
+        continue;
+      }
+
+      await this.tradeEventsRepo.save(
+        this.tradeEventsRepo.create({
+          poolId,
+          userId: currentUser.userId,
+          betId: normalized.betId,
+          status: normalized.status,
+          stake: normalized.stake,
+          payout: normalized.payout,
+          resolvedAtTick: normalized.resolvedAtTick,
+        }),
+      );
+      inserted += 1;
+    }
+
+    if (inserted > 0) {
+      await this.eventsRepo.save(
+        this.eventsRepo.create({
+          poolId,
+          eventType: 'trades.synced',
+          actorUserId: currentUser.userId,
+          payloadJson: {
+            inserted,
+            total: dto.trades.length,
+          },
+        }),
+      );
+    }
+
+    return { accepted: true, inserted };
   }
 
   async getLeaderboard(poolId: string, currentUser: AuthenticatedUser) {
@@ -321,7 +321,6 @@ export class PoolsService {
       where: { id: poolId },
       relations: {
         participants: true,
-        scores: true,
       },
     });
 
@@ -332,35 +331,34 @@ export class PoolsService {
     await this.syncPoolClosedState(pool, currentUser.userId);
 
     const joined = pool.participants.filter((participant) => participant.joinStatus === 'joined');
-    const scoresByUser = new Map(pool.scores.map((score) => [score.userId, score]));
+    const aggregates = await this.getTradeAggregatesByUser(poolId);
 
     const ranked = joined
       .map((participant) => {
-        const score = participant.userId ? scoresByUser.get(participant.userId) : undefined;
+        const aggregate = participant.userId ? aggregates.get(participant.userId) : undefined;
         return {
           participantId: participant.id,
           userId: participant.userId,
           walletAddress: participant.walletAddress,
-          submitted: Boolean(score),
-          pnl: score?.pnl ?? null,
-          wins: score?.wins ?? 0,
-          losses: score?.losses ?? 0,
-          totalStake: score?.totalStake ?? null,
-          totalPayout: score?.totalPayout ?? null,
+          submitted: Boolean(aggregate),
+          pnl: aggregate ? aggregate.pnl.toFixed(8) : null,
+          wins: aggregate?.wins ?? 0,
+          losses: aggregate?.losses ?? 0,
+          totalStake: aggregate ? aggregate.totalStake.toFixed(8) : null,
+          totalPayout: aggregate ? aggregate.totalPayout.toFixed(8) : null,
         };
       })
       .sort((a, b) => {
-        if (!a.submitted && !b.submitted) return 0;
-        if (!a.submitted) return 1;
-        if (!b.submitted) return -1;
-        return Number(b.pnl) - Number(a.pnl);
+        const aPnl = a.pnl ? Number(a.pnl) : -Infinity;
+        const bPnl = b.pnl ? Number(b.pnl) : -Infinity;
+        return bPnl - aPnl;
       });
 
     let currentRank = 0;
     let previousPnl: string | null = null;
 
     const leaderboard = ranked.map((row, idx) => {
-      if (!row.submitted) {
+      if (row.pnl === null) {
         return { ...row, rank: null };
       }
 
@@ -387,7 +385,6 @@ export class PoolsService {
       where: { id: poolId },
       relations: {
         participants: { user: true },
-        scores: true,
       },
     });
 
@@ -416,16 +413,17 @@ export class PoolsService {
       throw new BadRequestException('Pool has no joined participants');
     }
 
+    const aggregates = await this.getTradeAggregatesByUser(poolId);
     const winnerPrivyDids =
       dto.winnerPrivyDids && dto.winnerPrivyDids.length > 0
         ? dto.winnerPrivyDids
-        : this.computeAutoWinnerPrivyDids(joined, pool.scores);
+        : this.computeAutoWinnerPrivyDids(joined, aggregates);
 
     if (winnerPrivyDids.length === 0) {
-      throw new BadRequestException('No winners could be determined from submitted scores');
+      throw new BadRequestException('No winners could be determined from synced pool trades');
     }
 
-    const rankingSnapshot = this.computeRankingSnapshot(joined, pool.scores);
+    const rankingSnapshot = this.computeRankingSnapshot(joined, aggregates);
 
     const outcome = await this.outcomesRepo.save(
       this.outcomesRepo.create({
@@ -434,7 +432,7 @@ export class PoolsService {
           ...dto.outcome,
           winnerPrivyDids,
           rankingSnapshot,
-          winnerSelectionMode: dto.winnerPrivyDids?.length ? 'manual' : 'auto_score',
+          winnerSelectionMode: dto.winnerPrivyDids?.length ? 'manual' : 'auto_trade_pnl',
         },
         resolvedByUserId: currentUser.userId,
         resolveNote: dto.reason,
@@ -467,22 +465,21 @@ export class PoolsService {
 
   private computeAutoWinnerPrivyDids(
     joined: Array<PoolParticipantEntity>,
-    scores: Array<PoolScoreEntity>,
+    aggregates: Map<string, { pnl: number }>,
   ): string[] {
-    const scoreByUser = new Map(scores.map((score) => [score.userId, score]));
 
     const scoredJoined = joined
       .map((participant) => {
         if (!participant.userId) {
           return null;
         }
-        const score = scoreByUser.get(participant.userId);
-        if (!score || !participant.user?.privyDid) {
+        const aggregate = aggregates.get(participant.userId);
+        if (!aggregate || !participant.user?.privyDid) {
           return null;
         }
         return {
           privyDid: participant.user.privyDid,
-          pnl: Number(score.pnl),
+          pnl: aggregate.pnl,
         };
       })
       .filter((entry): entry is { privyDid: string; pnl: number } => Boolean(entry));
@@ -497,21 +494,23 @@ export class PoolsService {
     return scoredJoined.filter((entry) => entry.pnl === topPnl).map((entry) => entry.privyDid);
   }
 
-  private computeRankingSnapshot(joined: Array<PoolParticipantEntity>, scores: Array<PoolScoreEntity>) {
-    const scoreByUser = new Map(scores.map((score) => [score.userId, score]));
+  private computeRankingSnapshot(
+    joined: Array<PoolParticipantEntity>,
+    aggregates: Map<string, { pnl: number; wins: number; losses: number }>,
+  ) {
 
     const rankedRows = joined
       .map((participant) => {
-        const score = participant.userId ? scoreByUser.get(participant.userId) : undefined;
+        const aggregate = participant.userId ? aggregates.get(participant.userId) : undefined;
         return {
           participantId: participant.id,
           walletAddress: participant.walletAddress,
           userId: participant.userId,
           privyDid: participant.user?.privyDid ?? null,
-          submitted: Boolean(score),
-          pnl: score?.pnl ?? null,
-          wins: score?.wins ?? 0,
-          losses: score?.losses ?? 0,
+          submitted: Boolean(aggregate),
+          pnl: aggregate ? aggregate.pnl.toFixed(8) : null,
+          wins: aggregate?.wins ?? 0,
+          losses: aggregate?.losses ?? 0,
         };
       })
       .sort((a, b) => {
@@ -534,6 +533,65 @@ export class PoolsService {
       }
       return { ...row, rank: currentRank };
     });
+  }
+
+  private async getTradeAggregatesByUser(poolId: string) {
+    const rows = await this.tradeEventsRepo.find({
+      where: { poolId },
+    });
+
+    const map = new Map<
+      string,
+      { totalStake: number; totalPayout: number; pnl: number; wins: number; losses: number }
+    >();
+
+    for (const row of rows) {
+      const entry = map.get(row.userId) ?? {
+        totalStake: 0,
+        totalPayout: 0,
+        pnl: 0,
+        wins: 0,
+        losses: 0,
+      };
+      const stake = Number(row.stake);
+      const payout = Number(row.payout);
+      entry.totalStake += stake;
+      entry.totalPayout += payout;
+      entry.pnl = entry.totalPayout - entry.totalStake;
+      if (row.status === 'won') {
+        entry.wins += 1;
+      } else {
+        entry.losses += 1;
+      }
+      map.set(row.userId, entry);
+    }
+
+    return map;
+  }
+
+  private normalizeTrade(trade: PoolTradeEventDto) {
+    const status: 'won' | 'lost' | null =
+      trade.status === 'won' ? 'won' : trade.status === 'lost' ? 'lost' : null;
+    if (!status) {
+      throw new BadRequestException(`Invalid trade status: ${trade.status}`);
+    }
+    const resolvedAtTick = Number(trade.resolvedAtTick);
+    if (!Number.isFinite(resolvedAtTick) || resolvedAtTick < 0) {
+      throw new BadRequestException('Invalid resolvedAtTick');
+    }
+    const stake = Number(trade.stake);
+    const payout = Number(trade.payout);
+    if (!Number.isFinite(stake) || !Number.isFinite(payout)) {
+      throw new BadRequestException('Invalid trade amount');
+    }
+
+    return {
+      betId: trade.betId,
+      status,
+      stake: stake.toFixed(8),
+      payout: payout.toFixed(8),
+      resolvedAtTick: Math.floor(resolvedAtTick),
+    };
   }
 
   private async syncPoolClosedState(pool: PoolEntity, actorUserId?: string | null) {

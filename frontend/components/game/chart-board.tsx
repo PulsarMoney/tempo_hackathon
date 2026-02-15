@@ -256,7 +256,6 @@ export function ChartBoard() {
                 onSelectPoolPlay={(pool) => {
                   setActivePool(pool);
                   setActivePlayMode("pool");
-                  pushToast(`Pool mode active: ${pool.title}`, "neutral");
                 }}
                 onActivePoolChange={(pool) => {
                   setActivePool(pool);

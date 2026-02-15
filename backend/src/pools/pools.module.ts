@@ -7,6 +7,7 @@ import {
   PoolParticipantEntity,
   PoolPayoutEntity,
   PoolScoreEntity,
+  PoolTradeEventEntity,
   UserEntity,
 } from '../db/entities';
 import { PoolsService } from './pools.service';
@@ -25,6 +26,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
       PoolOutcomeEntity,
       PoolPayoutEntity,
       PoolScoreEntity,
+      PoolTradeEventEntity,
       PoolEventEntity,
       UserEntity,
     ]),

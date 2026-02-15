@@ -45,12 +45,7 @@ export type LeaderboardRow = {
   participantId: string;
   userId: string | null;
   walletAddress: string | null;
-  submitted: boolean;
   pnl: string | null;
-  wins: number;
-  losses: number;
-  totalStake: string | null;
-  totalPayout: string | null;
   rank: number | null;
 };
 
@@ -130,18 +125,20 @@ export async function resolvePool(
   });
 }
 
-export async function submitPoolScore(
+export async function submitPoolTrades(
   token: string,
   poolId: string,
   body: {
-    pnl: string;
-    totalStake: string;
-    totalPayout: string;
-    wins: number;
-    losses: number;
+    trades: Array<{
+      betId: string;
+      status: "won" | "lost";
+      stake: string;
+      payout: string;
+      resolvedAtTick: string;
+    }>;
   },
 ) {
-  return request<{ accepted: true; scoreId: string }>(`/pools/${poolId}/score`, token, {
+  return request<{ accepted: true; inserted: number }>(`/pools/${poolId}/trades`, token, {
     method: 'POST',
     body: JSON.stringify(body),
   });

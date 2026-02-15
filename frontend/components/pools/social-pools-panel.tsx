@@ -19,7 +19,7 @@ import {
   getPayoutExecution,
   listMyPools,
   resolvePool,
-  submitPoolScore,
+  submitPoolTrades,
   type LeaderboardRow,
   type MyPoolSummary,
   type PoolSummary,
@@ -89,7 +89,7 @@ export function SocialPoolsPanel({ onActivePoolChange, onSelectPoolPlay, history
   const [message, setMessage] = useState<string>("");
   const [showWinnerModal, setShowWinnerModal] = useState(false);
   const hydrated = useRef(false);
-  const lastAutoScoreKey = useRef<string>("");
+  const syncedTradeIdsRef = useRef<Set<string>>(new Set());
 
   const canUseWallet = authenticated && wallet?.type === "ethereum";
 
@@ -172,7 +172,11 @@ export function SocialPoolsPanel({ onActivePoolChange, onSelectPoolPlay, history
   }, [pool, joinedByMe, onSelectPoolPlay]);
 
   const canEndPool = Boolean(
-    pool && userMeta && pool.creatorUserId === userMeta.userId && userMeta.roles.includes("admin"),
+    pool &&
+      userMeta &&
+      (pool.creatorUserId === userMeta.userId ||
+        userMeta.roles.includes("admin") ||
+        userMeta.roles.includes("operator")),
   );
 
   const poolHistory = useMemo(
@@ -180,24 +184,12 @@ export function SocialPoolsPanel({ onActivePoolChange, onSelectPoolPlay, history
     [history, pool?.id],
   );
 
-  const scorePreview = useMemo(() => {
-    const wins = poolHistory.filter((bet) => bet.status === "won").length;
-    const losses = poolHistory.filter((bet) => bet.status !== "won").length;
-    const totalStake = poolHistory.reduce((acc, bet) => acc + bet.stake, 0);
-    const totalPayout = poolHistory.reduce((acc, bet) => acc + bet.payout, 0);
-
-    return {
-      trades: poolHistory.length,
-      wins,
-      losses,
-      totalStake,
-      totalPayout,
-      pnl: totalPayout - totalStake,
-    };
-  }, [poolHistory]);
+  useEffect(() => {
+    syncedTradeIdsRef.current.clear();
+  }, [pool?.id]);
 
   const eventRows = useMemo(() => {
-    const rows = [...(pool?.events ?? [])];
+    const rows = [...(pool?.events ?? [])].filter((event) => event.eventType !== "trades.synced");
     rows.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return rows;
   }, [pool?.events]);
@@ -270,49 +262,37 @@ export function SocialPoolsPanel({ onActivePoolChange, onSelectPoolPlay, history
     await refreshMyPools();
   };
 
-  const handleSubmitScore = useCallback(async () => {
-    if (!pool) return;
-    const token = await getAccessToken();
-    if (!token) return;
-
-    await submitPoolScore(token, pool.id, {
-      pnl: scorePreview.pnl.toFixed(8),
-      totalStake: scorePreview.totalStake.toFixed(8),
-      totalPayout: scorePreview.totalPayout.toFixed(8),
-      wins: scorePreview.wins,
-      losses: scorePreview.losses,
-    });
-
-    await loadPool(pool.id);
-  }, [getAccessToken, loadPool, pool, scorePreview.losses, scorePreview.pnl, scorePreview.totalPayout, scorePreview.totalStake, scorePreview.wins]);
-
   useEffect(() => {
     if (!pool || !joinedByMe) return;
-    if (pool.status !== "closed" && pool.status !== "resolved") return;
+    if (pool.status === "paid") return;
 
-    const key = [
-      pool.id,
-      scorePreview.pnl.toFixed(8),
-      scorePreview.totalStake.toFixed(8),
-      scorePreview.totalPayout.toFixed(8),
-      scorePreview.wins,
-      scorePreview.losses,
-    ].join(":");
+    const unsynced = poolHistory.filter((bet) => !syncedTradeIdsRef.current.has(bet.id));
+    if (unsynced.length === 0) return;
 
-    if (lastAutoScoreKey.current === key) return;
-    lastAutoScoreKey.current = key;
+    const run = async () => {
+      const token = await getAccessToken();
+      if (!token) return;
 
-    void handleSubmitScore();
-  }, [
-    handleSubmitScore,
-    joinedByMe,
-    pool,
-    scorePreview.losses,
-    scorePreview.pnl,
-    scorePreview.totalPayout,
-    scorePreview.totalStake,
-    scorePreview.wins,
-  ]);
+      await submitPoolTrades(token, pool.id, {
+        trades: unsynced.map((bet) => ({
+          betId: bet.id,
+          status: bet.status,
+          stake: bet.stake.toFixed(8),
+          payout: bet.payout.toFixed(8),
+          resolvedAtTick: String(bet.resolvedAtTick),
+        })),
+      });
+
+      for (const bet of unsynced) {
+        syncedTradeIdsRef.current.add(bet.id);
+      }
+
+      const next = await getPoolLeaderboard(token, pool.id);
+      setLeaderboard(next.leaderboard);
+    };
+
+    void run();
+  }, [getAccessToken, joinedByMe, pool, poolHistory]);
 
   const handleEndPool = async () => {
     if (!pool) return;
@@ -334,7 +314,7 @@ export function SocialPoolsPanel({ onActivePoolChange, onSelectPoolPlay, history
     let latest = pool;
     if (latest.status === "closed") {
       await resolvePool(token, pool.id, {
-        outcome: { strategy: "score_top_pnl" },
+        outcome: { strategy: "trade_top_pnl" },
         reason: "Pool ended by admin creator",
       });
       latest = await getPool(token, pool.id);
@@ -351,8 +331,6 @@ export function SocialPoolsPanel({ onActivePoolChange, onSelectPoolPlay, history
     await loadPool(pool.id);
     await refreshMyPools();
   };
-
-  const isPoolLockedToUser = Boolean(pool && joinedByMe);
 
   return (
     <Card>
@@ -480,7 +458,7 @@ export function SocialPoolsPanel({ onActivePoolChange, onSelectPoolPlay, history
 
               <div className="rounded-md border border-zinc-800 bg-zinc-900/40 p-3 text-xs">
                 <p className="mb-2 text-sm font-medium text-zinc-200">Leaderboard</p>
-                {leaderboard.length === 0 && <p className="text-zinc-500">No scores submitted yet.</p>}
+                {leaderboard.length === 0 && <p className="text-zinc-500">No synced pool trades yet.</p>}
                 {leaderboard.length > 0 && (
                   <div className="mb-1 grid grid-cols-[1fr_72px] gap-2 px-2 text-[10px] uppercase tracking-wide text-zinc-500">
                     <span>Address</span>

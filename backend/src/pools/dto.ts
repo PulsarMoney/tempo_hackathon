@@ -1,15 +1,15 @@
 import {
   IsArray,
-  IsInt,
   IsDateString,
   IsEnum,
-  IsNumberString,
   IsObject,
   IsOptional,
   IsString,
+  ValidateNested,
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export enum ResolveMode {
   MANUAL_ADMIN = 'manual_admin',
@@ -58,19 +58,26 @@ export class ResolvePoolDto {
   winnerPrivyDids?: string[];
 }
 
-export class SubmitPoolScoreDto {
-  @IsNumberString()
-  pnl!: string;
+export class PoolTradeEventDto {
+  @IsString()
+  betId!: string;
 
-  @IsNumberString()
-  totalStake!: string;
+  @IsString()
+  status!: 'won' | 'lost';
 
-  @IsNumberString()
-  totalPayout!: string;
+  @IsString()
+  stake!: string;
 
-  @IsInt()
-  wins!: number;
+  @IsString()
+  payout!: string;
 
-  @IsInt()
-  losses!: number;
+  @IsString()
+  resolvedAtTick!: string;
+}
+
+export class SubmitPoolTradesDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PoolTradeEventDto)
+  trades!: PoolTradeEventDto[];
 }
