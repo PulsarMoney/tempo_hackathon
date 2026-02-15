@@ -30,17 +30,6 @@ async function request<T>(path: string, token: string, init?: RequestInit): Prom
   return (await response.json()) as T;
 }
 
-export async function findContact(token: string, body: { type: 'email' | 'phone'; value: string }) {
-  return request<{ found: boolean; user?: { privyDid: string; walletAddress?: string | null; displayName?: string | null } }>(
-    '/contacts/find',
-    token,
-    {
-      method: 'POST',
-      body: JSON.stringify(body),
-    },
-  );
-}
-
 export async function createPool(
   token: string,
   body: {
@@ -49,7 +38,6 @@ export async function createPool(
     tokenAddress: string;
     closeAt: string;
     resolveMode: 'manual_admin';
-    invitedParticipants: Array<{ type: 'email' | 'phone' | 'privy'; value: string }>;
   },
 ) {
   return request<{ poolId: string; status: string }>('/pools', token, {

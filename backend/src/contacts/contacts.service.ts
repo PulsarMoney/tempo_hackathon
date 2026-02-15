@@ -10,6 +10,7 @@ export class ContactsService {
   constructor(private readonly configService: ConfigService) {
     const appId = this.configService.get<string>('PRIVY_APP_ID');
     const appSecret = this.configService.get<string>('PRIVY_APP_SECRET');
+    const verificationKey = this.getOptionalVerificationKey();
 
     if (!appId || !appSecret) {
       throw new Error('Missing PRIVY_APP_ID/PRIVY_APP_SECRET in backend env');
@@ -18,7 +19,7 @@ export class ContactsService {
     this.privyClient = new PrivyClient({
       appId,
       appSecret,
-      jwtVerificationKey: this.configService.get<string>('PRIVY_VERIFICATION_KEY'),
+      jwtVerificationKey: verificationKey,
     });
   }
 
@@ -54,5 +55,18 @@ export class ContactsService {
       walletAddress: wallet?.address ?? null,
       displayName: displayName?.username ?? null,
     };
+  }
+
+  private getOptionalVerificationKey(): string | undefined {
+    const raw = this.configService.get<string>('PRIVY_VERIFICATION_KEY')?.trim();
+    if (!raw) {
+      return undefined;
+    }
+
+    const normalized = raw.replace(/\\n/g, '\n');
+    const hasPemEnvelope =
+      normalized.includes('-----BEGIN PUBLIC KEY-----') && normalized.includes('-----END PUBLIC KEY-----');
+
+    return hasPemEnvelope ? normalized : undefined;
   }
 }

@@ -12,7 +12,6 @@ import {
   createJoinIntent,
   createPool,
   executePayout,
-  findContact,
   getPool,
   getPayoutExecution,
   resolvePool,
@@ -28,6 +27,10 @@ import { TxStatus, TxStatusBadge } from "@/components/pools/tx-status-badge";
 const explorerUrl = process.env.NEXT_PUBLIC_TEMPO_EXPLORER_URL ?? "https://explore.tempo.xyz";
 const escrowAddress = process.env.NEXT_PUBLIC_OPERATOR_ESCROW_ADDRESS as `0x${string}` | undefined;
 const tokenDecimals = Number(process.env.NEXT_PUBLIC_DEMO_TOKEN_DECIMALS ?? "6");
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export function SocialPoolsPanel() {
   const { authenticated, getAccessToken } = usePrivy();
@@ -54,7 +57,6 @@ export function SocialPoolsPanel() {
     entryAmount: string;
     tokenAddress: string;
     closeAt: string;
-    invitedParticipants: Array<{ type: "email" | "phone" | "privy"; value: string }>;
   }) => {
     const token = await getAccessToken();
     if (!token) return;
@@ -65,17 +67,6 @@ export function SocialPoolsPanel() {
     setPoolId(created.poolId);
     setMessage(`Pool created: ${created.poolId}`);
     await loadPool();
-  };
-
-  const handleLookupContact = async (type: "email" | "phone", value: string) => {
-    const token = await getAccessToken();
-    if (!token) return { found: false, fallback: value };
-    const result = await findContact(token, { type, value });
-    return {
-      found: result.found,
-      privyDid: result.user?.privyDid,
-      fallback: value,
-    };
   };
 
   const joinPool = async () => {
@@ -107,12 +98,33 @@ export function SocialPoolsPanel() {
     })) as string;
 
     setStatus("submitted");
+    setMessage(`Tx submitted, waiting confirmation: ${hash}`);
 
-    await confirmJoin(token, pool.id, {
-      userAddress: address,
-      joinTxHash: hash,
-      memoHex: intent.memoHex,
-    });
+    const maxAttempts = 20;
+    const retryDelayMs = 1500;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        await confirmJoin(token, pool.id, {
+          userAddress: address,
+          joinTxHash: hash,
+          memoHex: intent.memoHex,
+        });
+        break;
+      } catch (error) {
+        const text = error instanceof Error ? error.message : String(error);
+        const isPending = text.includes("transaction_not_found_or_unconfirmed");
+        const isLastAttempt = attempt === maxAttempts;
+
+        if (!isPending || isLastAttempt) {
+          throw error;
+        }
+
+        setStatus("confirming");
+        setMessage(`Waiting for chain confirmation... (${attempt}/${maxAttempts})`);
+        await sleep(retryDelayMs);
+      }
+    }
 
     setStatus("confirmed");
     setMessage(`Join confirmed: ${hash}`);
@@ -169,7 +181,7 @@ export function SocialPoolsPanel() {
         <CardTitle className="text-sm text-zinc-300">Social Pools (Tempo)</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <PoolCreateSheet onCreate={handleCreate} onLookupContact={handleLookupContact} />
+        <PoolCreateSheet onCreate={handleCreate} />
 
         <div className="flex gap-2">
           <Input value={poolId} onChange={(e) => setPoolId(e.target.value)} placeholder="Pool ID" />

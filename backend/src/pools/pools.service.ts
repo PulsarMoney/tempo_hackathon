@@ -40,6 +40,12 @@ export class PoolsService {
       throw new NotFoundException('Creator user not found');
     }
 
+    if (!this.chainService.isDemoToken(dto.tokenAddress)) {
+      throw new BadRequestException(
+        `Pool token must match configured DEMO_TOKEN_ADDRESS (${this.chainService.getDemoTokenAddress()})`,
+      );
+    }
+
     const pool = await this.poolsRepo.save(
       this.poolsRepo.create({
         title: dto.title,
@@ -50,20 +56,6 @@ export class PoolsService {
         closeAt: new Date(dto.closeAt),
       }),
     );
-
-    for (const invited of dto.invitedParticipants) {
-      await this.eventsRepo.save(
-        this.eventsRepo.create({
-          poolId: pool.id,
-          eventType: 'participant.invited',
-          actorUserId: currentUser.userId,
-          payloadJson: {
-            type: invited.type,
-            value: invited.value,
-          },
-        }),
-      );
-    }
 
     await this.eventsRepo.save(
       this.eventsRepo.create({

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CheckCircle2, LogIn, LogOut, Wallet } from "lucide-react";
-import { useActiveWallet, useLogin, useLogout, usePrivy, useWallets } from "@privy-io/react-auth";
+import { useActiveWallet, useIdentityToken, useLogin, useLogout, usePrivy, useWallets } from "@privy-io/react-auth";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +32,7 @@ function PrivyAuthControlsEnabled() {
   const lastSyncedSession = useRef<string | null>(null);
 
   const { ready, authenticated, user, getAccessToken } = usePrivy();
+  const { identityToken } = useIdentityToken();
   const { login } = useLogin();
   const { logout } = useLogout();
   const { wallets } = useWallets();
@@ -87,8 +88,9 @@ function PrivyAuthControlsEnabled() {
         return;
       }
 
-      const token = await getAccessToken();
-      if (!token) {
+      const accessToken = await getAccessToken();
+      const tokenToSend = identityToken ?? accessToken;
+      if (!tokenToSend) {
         return;
       }
 
@@ -104,7 +106,7 @@ function PrivyAuthControlsEnabled() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            accessToken: token,
+            accessToken: tokenToSend,
           }),
         });
 
@@ -128,7 +130,7 @@ function PrivyAuthControlsEnabled() {
     return () => {
       cancelled = true;
     };
-  }, [authenticated, ready, user, getAccessToken, primaryWalletAddress, activeEthereumWallet?.chainId]);
+  }, [authenticated, ready, user, getAccessToken, identityToken, primaryWalletAddress, activeEthereumWallet?.chainId]);
 
   if (!ready) {
     return <Badge variant="secondary">Auth loading...</Badge>;

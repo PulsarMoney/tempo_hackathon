@@ -7,6 +7,7 @@ import {
   createWalletClient,
   decodeFunctionData,
   http,
+  isAddress,
   isAddressEqual,
   keccak256,
   parseUnits,
@@ -39,6 +40,17 @@ export class ChainService {
     return `pool:${poolId}:payout:${participantId}:v1`;
   }
 
+  getDemoTokenAddress(): Address {
+    return this.tokenAddress;
+  }
+
+  isDemoToken(address: string): boolean {
+    if (!isAddress(address)) {
+      return false;
+    }
+    return isAddressEqual(address as Address, this.tokenAddress);
+  }
+
   memoHex(reference: string): Hex {
     return keccak256(toBytes(reference));
   }
@@ -49,11 +61,16 @@ export class ChainService {
     expectedMemoHex: Hex;
   }): Promise<{ valid: boolean; reason?: string }> {
     const client = createPublicClient({ transport: http(this.rpcUrl) });
-
-    const [tx, receipt] = await Promise.all([
-      client.getTransaction({ hash: input.txHash }),
-      client.getTransactionReceipt({ hash: input.txHash }),
-    ]);
+    let tx: Awaited<ReturnType<typeof client.getTransaction>>;
+    let receipt: Awaited<ReturnType<typeof client.getTransactionReceipt>>;
+    try {
+      [tx, receipt] = await Promise.all([
+        client.getTransaction({ hash: input.txHash }),
+        client.getTransactionReceipt({ hash: input.txHash }),
+      ]);
+    } catch {
+      return { valid: false, reason: 'transaction_not_found_or_unconfirmed' };
+    }
 
     if (receipt.status !== 'success') {
       return { valid: false, reason: 'transaction_not_successful' };
